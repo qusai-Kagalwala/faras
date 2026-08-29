@@ -84,4 +84,29 @@ async function login(req, res) {
   );
 }
 
-module.exports = { login };
+async function getMe(req, res) {
+  // req.user was populated by the `authenticate` middleware — { itsNumber, role }
+  const { itsNumber, role } = req.user;
+
+  const table = role === 'student' ? 'students' : 'users';
+  const result = await db.query(
+    `SELECT its_number, name FROM ${table} WHERE its_number = $1`,
+    [itsNumber]
+  );
+
+  if (result.rows.length === 0) {
+    return res
+      .status(404)
+      .json(errorResponse(ERROR_CODES.NOT_FOUND, 'Account no longer exists.'));
+  }
+
+  return res.status(200).json(
+    successResponse({
+      itsNumber: result.rows[0].its_number,
+      name: result.rows[0].name,
+      role,
+    })
+  );
+}
+
+module.exports = { login, getMe };
