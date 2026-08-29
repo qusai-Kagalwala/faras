@@ -8,6 +8,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const env = require('./config/env');
+const notFound = require('./middleware/notFound');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -31,6 +33,9 @@ app.get('/api/health', (req, res) => {
 
 // Feature routers are mounted here by later tasks (auth, scheduling, etc.).
 // Intentionally empty at scaffold stage.
+
+app.use(notFound);
+app.use(errorHandler);
 
 app.listen(env.port, () => {
   console.log(`[FARAS] server listening on port ${env.port} (${env.nodeEnv})`);
