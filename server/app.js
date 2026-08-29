@@ -8,6 +8,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const env = require('./config/env');
+const authRoutes = require('./routes/authRoutes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -31,8 +32,9 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Feature routers are mounted here by later tasks (auth, scheduling, etc.).
-// Intentionally empty at scaffold stage.
+app.use('/api/auth', authRoutes);
+
+// Feature routers are mounted here by later tasks (scheduling, survey, etc.).
 
 app.use(notFound);
 app.use(errorHandler);
