@@ -7,6 +7,7 @@ const db = require('../config/db');
 const { isValidItsNumber } = require('../../shared/validators');
 const { encryptPassword, decryptPassword } = require('../utils/passwordCrypto');
 const { signToken } = require('../utils/jwt');
+const { sendForgotPasswordEmail } = require('../utils/mailer');
 const { successResponse, errorResponse } = require('../../shared/schemas/apiResponse');
 const { ERROR_CODES } = require('../../shared/constants');
 
@@ -103,9 +104,6 @@ async function getMe(req, res) {
 }
 
 async function changePassword(req, res) {
-  // FR-AUTH-03: any logged-in user can change their own password. Requires
-  // the current password to prevent someone with a stolen-but-still-valid
-  // token from silently locking the real owner out.
   const { itsNumber, role } = req.user;
   const { currentPassword, newPassword } = req.body;
 
@@ -165,4 +163,68 @@ async function changePassword(req, res) {
   return res.status(200).json(successResponse({ message: 'Password changed successfully.' }));
 }
 
-module.exports = { login, getMe, changePassword };
+async function forgotPassword(req, res) {
+  // FR-AUTH-04: emails back the user's CURRENT password (not a reset link).
+  // This is a deliberate SRS-documented trade-off (NFR-S-06).
+  const { itsNumber } = req.body;
+
+  if (!isValidItsNumber(itsNumber)) {
+    return res
+      .status(400)
+      .json(errorResponse(ERROR_CODES.VALIDATION_FAILED, 'A valid ITS Number is required.'));
+  }
+
+  const userResult = await db.query(
+    'SELECT its_number, name, email, encrypted_password FROM users WHERE its_number = $1',
+    [itsNumber]
+  );
+
+  let account = null;
+  if (userResult.rows.length > 0) {
+    account = userResult.rows[0];
+  } else {
+    const studentResult = await db.query(
+      'SELECT its_number, name, email, encrypted_password FROM students WHERE its_number = $1',
+      [itsNumber]
+    );
+    if (studentResult.rows.length > 0) {
+      account = studentResult.rows[0];
+    }
+  }
+
+  // Deliberately identical success response whether or not the account
+  // exists, or has an email on file — never reveal which via this endpoint.
+  // This prevents ITS-number enumeration through the forgot-password flow.
+  const genericResponse = successResponse({
+    message: 'If an account with that ITS Number exists, a password email has been sent.',
+  });
+
+  if (!account || !account.email) {
+    return res.status(200).json(genericResponse);
+  }
+
+  let decryptedPassword;
+  try {
+    decryptedPassword = decryptPassword(account.encrypted_password);
+  } catch (err) {
+    console.error('[FARAS] Password decryption failed for', itsNumber, ':', err.message);
+    // Still return the generic response — don't leak internal failure state.
+    return res.status(200).json(genericResponse);
+  }
+
+  try {
+    await sendForgotPasswordEmail({
+      toEmail: account.email,
+      itsNumber: account.its_number,
+      currentPassword: decryptedPassword,
+    });
+  } catch (err) {
+    console.error('[FARAS] Failed to send forgot-password email for', itsNumber, ':', err.message);
+    // Still return the generic response — the person shouldn't learn that
+    // mail delivery failed specifically for their account.
+  }
+
+  return res.status(200).json(genericResponse);
+}
+
+module.exports = { login, getMe, changePassword, forgotPassword };
