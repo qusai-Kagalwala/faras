@@ -1,26 +1,33 @@
 // client/src/routes/AppRoutes.jsx
-// Route table. Placeholder elements here — T-11 replaces these with real
-// page shells per role.
-
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import { ROLES } from '../utils/roles';
 
-function Placeholder({ label }) {
-  return <div className="p-8 text-lg text-gray-700">{label}</div>;
+import LoginPage from '../pages/auth/LoginPage';
+import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
+import DepartmentDashboard from '../pages/department/DepartmentDashboard';
+import TeacherDashboard from '../pages/teacher/TeacherDashboard';
+import StudentDashboard from '../pages/student/StudentDashboard';
+
+function NotFound() {
+  return <div className="p-8 text-lg text-gray-700">404 — Not Found</div>;
+}
+
+function Unauthorized() {
+  return <div className="p-8 text-lg text-gray-700">403 — Unauthorized</div>;
 }
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Placeholder label="Login page" />} />
-      <Route path="/unauthorized" element={<Placeholder label="403 — Unauthorized" />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route
         path="/super-admin"
         element={
           <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-            <Placeholder label="Super Admin dashboard" />
+            <SuperAdminDashboard />
           </ProtectedRoute>
         }
       />
@@ -28,7 +35,7 @@ export default function AppRoutes() {
         path="/department"
         element={
           <ProtectedRoute allowedRoles={[ROLES.DEPARTMENT]}>
-            <Placeholder label="Department dashboard" />
+            <DepartmentDashboard />
           </ProtectedRoute>
         }
       />
@@ -36,7 +43,7 @@ export default function AppRoutes() {
         path="/teacher"
         element={
           <ProtectedRoute allowedRoles={[ROLES.TEACHER]}>
-            <Placeholder label="Teacher dashboard" />
+            <TeacherDashboard />
           </ProtectedRoute>
         }
       />
@@ -44,12 +51,12 @@ export default function AppRoutes() {
         path="/student"
         element={
           <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
-            <Placeholder label="Student portal" />
+            <StudentDashboard />
           </ProtectedRoute>
         }
       />
 
-      <Route path="*" element={<Placeholder label="404 — Not Found" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
