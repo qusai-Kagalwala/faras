@@ -1,8 +1,14 @@
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import AppRoutes from './routes/AppRoutes';
+
 function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center text-lg text-gray-700">
-      FARAS — under construction
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
