@@ -19,7 +19,7 @@ function authenticate(req, res, next) {
     const decoded = verifyToken(token);
     req.user = decoded; // { itsNumber, role }
     next();
-  } catch (err) {
+  } catch {
     return res
       .status(401)
       .json(errorResponse(ERROR_CODES.UNAUTHORIZED, 'Invalid or expired token.'));
