@@ -2,7 +2,7 @@
 -- Maps which subjects are offered to which class — independent of the
 -- schedule table, so the scheduling generator can determine "what subjects
 -- does this class need to rotate through" without requiring pre-existing
--- schedule data (which is exactly backwards for a *generator*).
+-- schedule data.
 
 CREATE TABLE class_subjects (
   class_id    INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
