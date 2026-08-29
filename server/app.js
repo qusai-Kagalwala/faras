@@ -9,6 +9,7 @@ const morgan = require('morgan');
 
 const env = require('./config/env');
 const authRoutes = require('./routes/authRoutes');
+const scheduleRoutes = require('./routes/scheduleRoutes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -33,8 +34,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/scheduling', scheduleRoutes);
 
-// Feature routers are mounted here by later tasks (scheduling, survey, etc.).
+// Feature routers are mounted here by later tasks (survey, ai-reports, etc.).
 
 app.use(notFound);
 app.use(errorHandler);

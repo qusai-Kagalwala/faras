@@ -2,23 +2,23 @@
 // Bridges real Postgres data to the pure generateSchedule() logic
 // (server/modules/scheduling). Generates for one class at a time — safer
 // to run incrementally than regenerating the entire school in one call.
+//
+// SAFETY FIX: previously only relied on the DB's UNIQUE(week_number,
+// student_its, subject_id) constraint to avoid duplicates — but that only
+// blocks the exact same subject being inserted twice, not a *different*
+// subject being layered onto a week a student already has a real
+// assignment for. This caused real double-booked weeks for 24 real
+// students in class 26 during testing (since fixed by hand). Now this
+// service explicitly checks for and skips any student who already has
+// ANY schedule row in a given week, regardless of subject.
 
 const db = require('../config/db');
 const { generateSchedule } = require('../modules/scheduling/generateSchedule');
 
-/**
- * Builds the classKey format used by generateSchedule: "darajah|section|gender".
- */
 function classKeyFor(darajah, section, gender) {
   return `${darajah}|${section}|${gender}`;
 }
 
-/**
- * Loads real students, subjects/teachers (from class_subjects — the
- * authoritative "what does this class rotate through" mapping, independent
- * of any pre-existing schedule rows), and in-progress subject history for
- * one class, ready to hand to generateSchedule().
- */
 async function loadClassData(classId) {
   const classResult = await db.query(
     'SELECT id, darajah, section, gender, display_name FROM classes WHERE id = $1',
@@ -69,25 +69,41 @@ async function loadClassData(classId) {
 }
 
 /**
- * Generates and persists a schedule for one class, for weeks
- * [startWeek, startWeek + numWeeks - 1]. Does NOT overwrite existing rows —
- * relies on the schedule table's UNIQUE(week_number, student_its, subject_id)
- * constraint, so re-running is safe (duplicates are silently skipped).
+ * Returns a Set of "week|studentIts" keys for every schedule row that
+ * ALREADY exists for this class across the given week range — regardless
+ * of subject. Used to skip students who already have any assignment in a
+ * given week, not just an identical one.
  */
+async function loadOccupiedWeeks(classId, startWeek, endWeek) {
+  const result = await db.query(
+    `SELECT week_number, student_its FROM schedule
+     WHERE class_id = $1 AND week_number BETWEEN $2 AND $3`,
+    [classId, startWeek, endWeek]
+  );
+  return new Set(result.rows.map((r) => `${r.week_number}|${r.student_its}`));
+}
+
 async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
   const { classKey, students, subjects, existingHistory } = await loadClassData(classId);
 
   if (students.length === 0) {
-    return { inserted: 0, warnings: [`No students found for class ${classId}.`] };
+    return { inserted: 0, skippedOccupied: 0, warnings: [`No students found for class ${classId}.`] };
   }
   if (subjects.length === 0) {
-    return { inserted: 0, warnings: [`No subjects mapped to class ${classId} in class_subjects.`] };
+    return {
+      inserted: 0,
+      skippedOccupied: 0,
+      warnings: [`No subjects mapped to class ${classId} in class_subjects.`],
+    };
   }
+
+  const endWeek = startWeek + numWeeks - 1;
+  const occupied = await loadOccupiedWeeks(classId, startWeek, endWeek);
 
   const { assignments, warnings } = generateSchedule({
     studentsByClass: new Map([[classKey, students]]),
     subjectsByClass: new Map([[classKey, subjects]]),
-    numWeeks: startWeek + numWeeks - 1,
+    numWeeks: endWeek,
     rng,
     existingHistory,
   });
@@ -95,7 +111,17 @@ async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
   const relevant = assignments.filter((a) => a.week >= startWeek);
 
   let inserted = 0;
+  let skippedOccupied = 0;
+
   for (const a of relevant) {
+    const occupiedKey = `${a.week}|${a.studentIts}`;
+    if (occupied.has(occupiedKey)) {
+      // This student already has SOME assignment for this week — never
+      // layer a second, different subject on top of it.
+      skippedOccupied++;
+      continue;
+    }
+
     const result = await db.query(
       `INSERT INTO schedule (week_number, class_id, subject_id, teacher_its, student_its, group_number)
        VALUES ($1, $2, $3, $4, $5, NULL)
@@ -106,7 +132,7 @@ async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
     if (result.rows.length > 0) inserted++;
   }
 
-  return { inserted, totalGenerated: relevant.length, warnings };
+  return { inserted, skippedOccupied, totalGenerated: relevant.length, warnings };
 }
 
-module.exports = { loadClassData, generateAndSaveForClass, classKeyFor };
+module.exports = { loadClassData, generateAndSaveForClass, classKeyFor, loadOccupiedWeeks };
