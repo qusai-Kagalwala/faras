@@ -29,6 +29,7 @@
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.11.0",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "smtp-tester": "^2.1.0"
   }
 }
