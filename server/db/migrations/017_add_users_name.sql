@@ -3,4 +3,4 @@
 -- teachers.name), but super_admin/department roles have no equivalent
 -- identity table, so there was nowhere to store their name at all.
 
-ALTER TABLE users ADD COLUMN name TEXT;
+ALTER TABLE users ADD COLUMN name TEXT; 
