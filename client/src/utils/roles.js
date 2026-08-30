@@ -12,3 +12,12 @@ export const ROLES = Object.freeze({
 });
 
 export const ALL_ROLES = Object.freeze(Object.values(ROLES));
+
+// Maps a role to its dashboard route — used after login to redirect each
+// role to the correct starting page.
+export const DASHBOARD_PATH_BY_ROLE = Object.freeze({
+  [ROLES.SUPER_ADMIN]: '/super-admin',
+  [ROLES.DEPARTMENT]: '/department',
+  [ROLES.TEACHER]: '/teacher',
+  [ROLES.STUDENT]: '/student',
+});
