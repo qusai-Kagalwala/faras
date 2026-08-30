@@ -1,20 +1,26 @@
 // client/src/pages/teacher/TeacherDashboard.jsx
-// Desktop-first per NFR-U-03, with responsive fallback.
+import TopBar from '../../components/common/TopBar';
 
 export default function TeacherDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">My Reports</h1>
-      </header>
+    <div className="min-h-screen bg-cream">
+      <TopBar title="My Reports" />
       <main className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-        <section className="rounded-lg bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-lg font-medium text-gray-800">Latest Cycle</h2>
-          <p className="text-gray-600">Approved reports will appear here.</p>
+        <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+          <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+            Latest Cycle
+          </h2>
+          <p className="text-sm text-text-secondary">
+            Your approved feedback report will appear here once dispatched by the department.
+          </p>
         </section>
-        <section className="rounded-lg bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-lg font-medium text-gray-800">Historical Trend</h2>
-          <p className="text-gray-600">Score trend chart will appear here.</p>
+        <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+          <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+            Historical Trend
+          </h2>
+          <p className="text-sm text-text-secondary">
+            A trend of your scores and themes across cycles will appear here.
+          </p>
         </section>
       </main>
     </div>

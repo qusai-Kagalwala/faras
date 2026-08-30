@@ -1,11 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 /*
-  Design tokens (colors, fonts, spacing) will be added here once
-  FARAS_UI_Design_Guide values are confirmed — Tailwind v4 uses @theme
-  blocks in CSS instead of a separate tailwind.config.js file.
+  FARAS Design Tokens — pulled directly from FARAS_Design_System_v1_1_corrected.md,
+  which supersedes the original UI guide's invented navy/steel-blue palette.
+  These values match Awraaq's real theme.css exactly (deep teal + gold on
+  cream, serif headings) so FARAS shares one visual identity with WAMAS/Awraaq,
+  not an unrelated one. Do not re-derive or invent new colors — extend this
+  file only by adding new tokens sourced from the same design system doc.
 */
+@theme {
+  /* Primary — deep teal */
+  --color-primary: #0F5B5A;
+  --color-primary-dark: #083F3E;
+  --color-primary-light: #17706E;
+  --color-primary-muted: rgba(15, 91, 90, 0.08);
+
+  /* Accent — warm gold */
+  --color-gold: #C9A84C;
+  --color-gold-light: #E4C97E;
+  --color-gold-dark: #A07830;
+  --color-gold-muted: #F5EDD8;
+
+  /* Neutrals — warm cream, not cool grey */
+  --color-dark-brown: #3D2B1F;
+  --color-charcoal: #1C1C1C;
+  --color-cream: #FAF7F2;
+  --color-cream-dark: #F0EBE0;
+  --color-border: #E0D6C8;
+  --color-border-dark: #C8B89A;
+
+  /* Text hierarchy */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #8C7B6B;
+
+  /* Semantic — muted tones with pale backgrounds, not bright alert colors */
+  --color-success: #3A6B4A;
+  --color-success-bg: #EBF4EE;
+  --color-warning: #8B5E1A;
+  --color-warning-bg: #FDF3E0;
+  --color-error: #8B2A2A;
+  --color-error-bg: #FBEDED;
+  --color-info: #1A4A6B;
+  --color-info-bg: #E8F2FB;
+
+  /* Fonts — Amiri first, keeps FARAS bilingual (Arabic script) ready */
+  --font-display: 'Amiri', 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Amiri', 'Inter', 'Lato', Helvetica, Arial, sans-serif;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.07);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-primary: 0 4px 20px rgba(15, 91, 90, 0.25);
+  --shadow-gold: 0 4px 20px rgba(201, 168, 76, 0.3);
+}
 
 body {
   margin: 0;
+  background-color: var(--color-cream);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-dark-brown);
 }

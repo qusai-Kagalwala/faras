@@ -31,21 +31,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-cream px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-sm"
+        className="w-full max-w-sm rounded-lg border border-border bg-white p-8 shadow-sm"
         noValidate
       >
-        <h1 className="mb-4 text-xl font-semibold text-gray-900">FARAS Login</h1>
+        <h1 className="mb-1 font-display text-2xl font-bold text-dark-brown">FARAS</h1>
+        <p className="mb-6 text-sm text-text-tertiary">Sign in with your ITS Number</p>
 
         {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="mb-4 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
             {error}
           </div>
         )}
 
-        <label className="mb-1 block text-sm text-gray-600" htmlFor="itsNumber">
+        <label className="mb-1 block text-sm font-medium text-text-secondary" htmlFor="itsNumber">
           ITS Number
         </label>
         <input
@@ -55,13 +56,13 @@ export default function LoginPage() {
           autoComplete="username"
           value={itsNumber}
           onChange={(e) => setItsNumber(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2"
+          className="mb-4 w-full rounded-md border border-border bg-white px-3 py-2.5 text-text-primary placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-muted"
           placeholder="8-digit ITS Number"
           disabled={submitting}
           required
         />
 
-        <label className="mb-1 block text-sm text-gray-600" htmlFor="password">
+        <label className="mb-1 block text-sm font-medium text-text-secondary" htmlFor="password">
           Password
         </label>
         <input
@@ -70,7 +71,7 @@ export default function LoginPage() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2"
+          className="mb-6 w-full rounded-md border border-border bg-white px-3 py-2.5 text-text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-muted"
           disabled={submitting}
           required
         />
@@ -78,7 +79,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+          className="w-full rounded-md bg-primary px-4 py-2.5 font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? 'Logging in...' : 'Log In'}
         </button>
