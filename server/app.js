@@ -14,6 +14,7 @@ const env = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const schedulingRoutes = require('./modules/scheduling/scheduling.routes');
 const surveyRoutes = require('./modules/survey/survey.routes');
+const mappingRoutes = require('./modules/mapping/mapping.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -38,6 +39,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/scheduling', schedulingRoutes);
 app.use('/api/survey', surveyRoutes);
+app.use('/api/mapping', mappingRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
@@ -46,7 +48,6 @@ const server = app.listen(env.port, () => {
   console.log(`[FARAS] server listening on port ${env.port} (${env.nodeEnv})`);
 });
 
-/* ─── Graceful shutdown ────────────────────────────────────────────────── */
 function shutdown(signal) {
   console.log(`[FARAS] ${signal} received. Shutting down gracefully...`);
   server.close(() => {
