@@ -1,7 +1,7 @@
-// server/routes/authRoutes.js
+// server/modules/auth/auth.routes.js
 const express = require('express');
-const { login, getMe, changePassword, forgotPassword } = require('../controllers/authController');
-const authenticate = require('../middleware/authenticate');
+const { login, getMe, changePassword, forgotPassword } = require('./auth.controller');
+const authenticate = require('../../middleware/authenticate');
 
 const router = express.Router();
 

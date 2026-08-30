@@ -9,10 +9,12 @@
     "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
     "install:all": "npm install && npm install --prefix server && npm install --prefix client",
     "lint": "npm run lint --prefix server && npm run lint --prefix client",
-    "format": "prettier --write \"server/**/*.js\" \"client/src/**/*.{js,jsx,css}\" \"*.md\""
+    "format": "prettier --write \"server/**/*.js\" \"client/src/**/*.{js,jsx,css}\" \"*.md\"",
+    "test": "jest"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
+    "jest": "^30.5.0",
     "prettier": "^3.9.6"
   },
   "keywords": [],

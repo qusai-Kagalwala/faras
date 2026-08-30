@@ -3,14 +3,13 @@
 // requireRole() checks. Expects "Authorization: Bearer <token>".
 
 const { verifyToken } = require('../utils/jwt');
-const { errorResponse } = require('../../shared/schemas/apiResponse');
-const { ERROR_CODES } = require('../../shared/constants');
+const { Errors } = require('./errorHandler');
 
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json(errorResponse(ERROR_CODES.UNAUTHORIZED, 'No token provided.'));
+    return next(Errors.unauthorized('No token provided.'));
   }
 
   const token = authHeader.slice('Bearer '.length);
@@ -20,9 +19,7 @@ function authenticate(req, res, next) {
     req.user = decoded; // { itsNumber, role }
     next();
   } catch {
-    return res
-      .status(401)
-      .json(errorResponse(ERROR_CODES.UNAUTHORIZED, 'Invalid or expired token.'));
+    return next(Errors.unauthorized('Invalid or expired token.'));
   }
 }
 

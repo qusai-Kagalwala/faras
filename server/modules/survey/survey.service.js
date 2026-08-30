@@ -1,8 +1,8 @@
-// server/services/surveyService.js
-// Bridges real Postgres data to compileSurveyForStudent() (server/modules/survey).
+// server/modules/survey/survey.service.js
+// Bridges real Postgres data to compileSurveyForStudent() in this same folder.
 
-const db = require('../config/db');
-const { compileSurveyForStudent } = require('../modules/survey/compileSurvey');
+const db = require('../../config/db');
+const { compileSurveyForStudent } = require('./compileSurvey');
 
 /**
  * Compiles the real survey for one real student, for one real week.

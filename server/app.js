@@ -1,6 +1,9 @@
 // server/app.js
-// Entry point — IISNode will point directly at this file in production
-// (see FARAS_IIS_Deployment_Guide.md). Do not rename or move it.
+// Entry point — IISNode points directly at this file in production
+// (see FARAS_IIS_Deployment_Guide.md web.config: path="server/app.js").
+// Do not rename or move it, and do not split this into a separate
+// server.js/app.js pair — the deployment guide's IISNode handler is
+// hardcoded to this exact path.
 
 const express = require('express');
 const helmet = require('helmet');
@@ -8,11 +11,10 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const env = require('./config/env');
-const authRoutes = require('./routes/authRoutes');
-const scheduleRoutes = require('./routes/scheduleRoutes');
-const surveyRoutes = require('./routes/surveyRoutes');
-const notFound = require('./middleware/notFound');
-const errorHandler = require('./middleware/errorHandler');
+const authRoutes = require('./modules/auth/auth.routes');
+const schedulingRoutes = require('./modules/scheduling/scheduling.routes');
+const surveyRoutes = require('./modules/survey/survey.routes');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -29,22 +31,44 @@ if (env.nodeEnv !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Health check — confirms the process is up behind IIS/IISNode.
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/scheduling', scheduleRoutes);
+app.use('/api/scheduling', schedulingRoutes);
 app.use('/api/survey', surveyRoutes);
 
-// Feature routers are mounted here by later tasks (ai-reports, approval, etc.).
+app.use(notFoundHandler);
+app.use(errorHandler); // must be last
 
-app.use(notFound);
-app.use(errorHandler);
-
-app.listen(env.port, () => {
+const server = app.listen(env.port, () => {
   console.log(`[FARAS] server listening on port ${env.port} (${env.nodeEnv})`);
+});
+
+/* ─── Graceful shutdown ────────────────────────────────────────────────── */
+function shutdown(signal) {
+  console.log(`[FARAS] ${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('[FARAS] HTTP server closed.');
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error('[FARAS] Forced shutdown after timeout.');
+    process.exit(1);
+  }, 10_000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FARAS] Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[FARAS] Uncaught exception:', err.message);
 });
 
 module.exports = app;

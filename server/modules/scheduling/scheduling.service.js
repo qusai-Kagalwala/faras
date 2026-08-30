@@ -1,7 +1,7 @@
-// server/services/scheduleService.js
-// Bridges real Postgres data to the pure generateSchedule() logic
-// (server/modules/scheduling). Generates for one class at a time — safer
-// to run incrementally than regenerating the entire school in one call.
+// server/modules/scheduling/scheduling.service.js
+// Bridges real Postgres data to the pure generateSchedule() logic in this
+// same folder. Generates for one class at a time — safer to run
+// incrementally than regenerating the entire school in one call.
 //
 // SAFETY FIX: previously only relied on the DB's UNIQUE(week_number,
 // student_its, subject_id) constraint to avoid duplicates — but that only
@@ -12,8 +12,8 @@
 // service explicitly checks for and skips any student who already has
 // ANY schedule row in a given week, regardless of subject.
 
-const db = require('../config/db');
-const { generateSchedule } = require('../modules/scheduling/generateSchedule');
+const db = require('../../config/db');
+const { generateSchedule } = require('./generateSchedule');
 
 function classKeyFor(darajah, section, gender) {
   return `${darajah}|${section}|${gender}`;
@@ -68,12 +68,6 @@ async function loadClassData(classId) {
   return { classKey, students, subjects, existingHistory, classInfo: cls };
 }
 
-/**
- * Returns a Set of "week|studentIts" keys for every schedule row that
- * ALREADY exists for this class across the given week range — regardless
- * of subject. Used to skip students who already have any assignment in a
- * given week, not just an identical one.
- */
 async function loadOccupiedWeeks(classId, startWeek, endWeek) {
   const result = await db.query(
     `SELECT week_number, student_its FROM schedule
@@ -116,8 +110,6 @@ async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
   for (const a of relevant) {
     const occupiedKey = `${a.week}|${a.studentIts}`;
     if (occupied.has(occupiedKey)) {
-      // This student already has SOME assignment for this week — never
-      // layer a second, different subject on top of it.
       skippedOccupied++;
       continue;
     }

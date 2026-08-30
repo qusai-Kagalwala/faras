@@ -15,6 +15,12 @@ module.exports = [
       'no-console': 'off',
     },
   },
+  {
+    files: ['__tests__/**/*.test.js'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.jest },
+    },
+  },
   eslintConfigPrettier,
   { ignores: ['node_modules/', 'coverage/'] },
 ];
