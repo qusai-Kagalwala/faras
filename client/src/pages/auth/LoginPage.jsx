@@ -3,16 +3,24 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { DASHBOARD_PATH_BY_ROLE } from '../../utils/roles';
+import RolePickerModal from '../../components/common/RolePickerModal';
 
 export default function LoginPage() {
   const [itsNumber, setItsNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingPicker, setPendingPicker] = useState(null);
+  const [pickerError, setPickerError] = useState(null);
 
-  const { login } = useAuth();
+  const { login, switchRole, askEveryTime, setAskEveryTime } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  function goToDashboard(role) {
+    const redirectTo = location.state?.from || DASHBOARD_PATH_BY_ROLE[role] || '/';
+    navigate(redirectTo, { replace: true });
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -20,13 +28,33 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      const user = await login(itsNumber.trim(), password);
-      const redirectTo = location.state?.from || DASHBOARD_PATH_BY_ROLE[user.role] || '/';
-      navigate(redirectTo, { replace: true });
+      const { user, availableRoles } = await login(itsNumber.trim(), password);
+
+      if (availableRoles.length > 1 && askEveryTime) {
+        setPendingPicker({ activeRole: user.role, availableRoles });
+      } else {
+        goToDashboard(user.role);
+      }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handlePickRole(role) {
+    setPickerError(null);
+
+    if (role === pendingPicker.activeRole) {
+      goToDashboard(role);
+      return;
+    }
+
+    try {
+      const newUser = await switchRole(role);
+      goToDashboard(newUser.role);
+    } catch (err) {
+      setPickerError(err.message || 'Could not switch roles. Please try again.');
     }
   }
 
@@ -84,6 +112,22 @@ export default function LoginPage() {
           {submitting ? 'Logging in...' : 'Log In'}
         </button>
       </form>
+
+      {pendingPicker && (
+        <RolePickerModal
+          availableRoles={pendingPicker.availableRoles}
+          currentRole={pendingPicker.activeRole}
+          askEveryTime={askEveryTime}
+          onToggleAskEveryTime={setAskEveryTime}
+          onSelect={handlePickRole}
+          error={pickerError}
+          onClose={() => {
+            goToDashboard(pendingPicker.activeRole);
+            setPendingPicker(null);
+            setPickerError(null);
+          }}
+        />
+      )}
     </div>
   );
 }

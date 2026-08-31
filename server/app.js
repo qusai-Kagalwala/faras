@@ -18,6 +18,7 @@ const mappingRoutes = require('./modules/mapping/mapping.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const approvalRoutes = require('./modules/approval/approval.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
+const usersRoutes = require('./modules/users/users.routes');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/survey', surveyRoutes);
 app.use('/api/mapping', mappingRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/users', usersRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last

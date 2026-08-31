@@ -2,12 +2,20 @@
 // FR-AUTH-01: every role logs in with their own ITS Number. Checks `users`
 // (staff: super_admin/department/teacher) and `students` separately, since
 // they're different tables — never merge the lookup query across both.
+//
+// MULTI-ROLE SUPPORT: a staff person can hold several roles at once (e.g.
+// department head who is also a teacher and super admin) — see migration
+// 019_user_roles.sql. Students are never multi-role. On login, the ACTIVE
+// role for the session defaults to the highest-hierarchy assigned role
+// (getHighestRole); switchRole() lets the person change it afterward
+// without re-entering their password.
 
 const db = require('../../config/db');
 const { encryptPassword, decryptPassword } = require('../../utils/passwordCrypto');
 const { signToken } = require('../../utils/jwt');
 const { sendForgotPasswordEmail } = require('../../utils/mailer');
 const { Errors } = require('../../middleware/errorHandler');
+const { getHighestRole } = require('../../../shared/constants');
 
 async function findAccountByIts(itsNumber) {
   let userResult;
@@ -38,6 +46,14 @@ async function findAccountByIts(itsNumber) {
   return { account: null, role: null };
 }
 
+async function getAssignedRoles(itsNumber, fallbackRole) {
+  const result = await db.query('SELECT role FROM user_roles WHERE its_number = $1', [itsNumber]);
+  if (result.rows.length === 0) {
+    return [fallbackRole];
+  }
+  return result.rows.map((r) => r.role);
+}
+
 function safeDecrypt(encryptedPassword, itsNumber) {
   try {
     return decryptPassword(encryptedPassword);
@@ -45,6 +61,15 @@ function safeDecrypt(encryptedPassword, itsNumber) {
     console.error('[FARAS] Password decryption failed for', itsNumber, ':', err.message);
     throw Errors.internal();
   }
+}
+
+function buildUserPayload(account, activeRole) {
+  return {
+    itsNumber: account.its_number,
+    role: activeRole,
+    name: account.name,
+    mustChangePassword: account.must_change_password,
+  };
 }
 
 async function login(itsNumber, password) {
@@ -60,16 +85,37 @@ async function login(itsNumber, password) {
     throw Errors.unauthorized('Invalid ITS Number or password.');
   }
 
-  const token = signToken({ itsNumber: account.its_number, role });
+  const assignedRoles = role === 'student' ? ['student'] : await getAssignedRoles(itsNumber, role);
+  const activeRole = assignedRoles.length > 1 ? getHighestRole(assignedRoles) : assignedRoles[0];
+
+  const token = signToken({ itsNumber: account.its_number, role: activeRole });
 
   return {
     token,
-    user: {
-      itsNumber: account.its_number,
-      role,
-      name: account.name,
-      mustChangePassword: account.must_change_password,
-    },
+    user: buildUserPayload(account, activeRole),
+    availableRoles: assignedRoles,
+  };
+}
+
+async function switchRole(itsNumber, requestedRole) {
+  const { account, role } = await findAccountByIts(itsNumber);
+
+  if (!account || role === 'student') {
+    throw Errors.forbidden('Role switching is not available for this account.');
+  }
+
+  const assignedRoles = await getAssignedRoles(itsNumber, role);
+
+  if (!assignedRoles.includes(requestedRole)) {
+    throw Errors.forbidden('You do not hold the requested role.');
+  }
+
+  const token = signToken({ itsNumber: account.its_number, role: requestedRole });
+
+  return {
+    token,
+    user: buildUserPayload(account, requestedRole),
+    availableRoles: assignedRoles,
   };
 }
 
@@ -83,7 +129,14 @@ async function getMe(itsNumber, role) {
     throw Errors.notFound('Account no longer exists.');
   }
 
-  return { itsNumber: result.rows[0].its_number, name: result.rows[0].name, role };
+  const assignedRoles = role === 'student' ? ['student'] : await getAssignedRoles(itsNumber, role);
+
+  return {
+    itsNumber: result.rows[0].its_number,
+    name: result.rows[0].name,
+    role,
+    availableRoles: assignedRoles,
+  };
 }
 
 async function changePassword(itsNumber, role, currentPassword, newPassword) {
@@ -146,4 +199,12 @@ async function forgotPassword(itsNumber) {
   return genericMessage;
 }
 
-module.exports = { findAccountByIts, login, getMe, changePassword, forgotPassword };
+module.exports = {
+  findAccountByIts,
+  getAssignedRoles,
+  login,
+  switchRole,
+  getMe,
+  changePassword,
+  forgotPassword,
+};

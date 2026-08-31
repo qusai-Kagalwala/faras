@@ -3,6 +3,8 @@ import { useState } from 'react';
 import TopBar from '../../components/common/TopBar';
 import { useAuth } from '../../context/AuthContext';
 import { schedulingApi } from '../../api/scheduling.api';
+import { usersApi } from '../../api/users.api';
+import { ROLE_LABELS } from '../../utils/roles';
 
 function ConfigCard({ title, description }) {
   return (
@@ -127,6 +129,96 @@ function SchedulingEngineCard() {
   );
 }
 
+const ASSIGNABLE_ROLES = ['super_admin', 'department', 'teacher'];
+
+function UserRoleManagementCard() {
+  const { token } = useAuth();
+  const [itsNumber, setItsNumber] = useState('');
+  const [roles, setRoles] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleLookup(e) {
+    e.preventDefault();
+    setError(null);
+    setRoles(null);
+    setLoading(true);
+    try {
+      const res = await usersApi.getRoles(token, itsNumber.trim());
+      setRoles(res.data.roles);
+    } catch (err) {
+      setError(err.message || 'Could not find this account.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleToggle(role, currentlyHeld) {
+    setError(null);
+    try {
+      const res = currentlyHeld
+        ? await usersApi.removeRole(token, itsNumber.trim(), role)
+        : await usersApi.assignRole(token, itsNumber.trim(), role);
+      setRoles(res.data.roles);
+    } catch (err) {
+      setError(err.message || 'Could not update roles.');
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+      <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+        Manage User Roles
+      </h2>
+      <p className="mb-4 text-sm text-text-secondary">
+        A single staff member may hold multiple roles (e.g. a department head who is also a
+        teacher). Every account must always keep at least one role.
+      </p>
+
+      <form onSubmit={handleLookup} className="mb-4 flex gap-2">
+        <input
+          type="text"
+          value={itsNumber}
+          onChange={(e) => setItsNumber(e.target.value)}
+          placeholder="8-digit Staff ITS Number"
+          className="flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          required
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Loading...' : 'Look Up'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mb-3 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
+          {error}
+        </div>
+      )}
+
+      {roles && (
+        <div className="space-y-2">
+          {ASSIGNABLE_ROLES.map((role) => {
+            const held = roles.includes(role);
+            return (
+              <label
+                key={role}
+                className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+              >
+                <span className="text-sm text-text-primary">{ROLE_LABELS[role].label}</span>
+                <input type="checkbox" checked={held} onChange={() => handleToggle(role, held)} />
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function SuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-cream">
@@ -141,6 +233,7 @@ export default function SuperAdminDashboard() {
           title="Question Bank"
           description="Maintain the master feedback statement bank and focus areas."
         />
+        <UserRoleManagementCard />
       </main>
     </div>
   );

@@ -7,6 +7,7 @@ const authService = require('./auth.service');
 const { isValidItsNumber } = require('../../../shared/validators');
 const { successResponse } = require('../../../shared/schemas/apiResponse');
 const { Errors } = require('../../middleware/errorHandler');
+const { ALL_ROLES } = require('../../../shared/constants');
 
 async function login(req, res, next) {
   try {
@@ -17,6 +18,22 @@ async function login(req, res, next) {
     }
 
     const result = await authService.login(itsNumber, password);
+    return res.status(200).json(successResponse(result));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function switchRole(req, res, next) {
+  try {
+    const { itsNumber } = req.user;
+    const { role } = req.body;
+
+    if (typeof role !== 'string' || !ALL_ROLES.includes(role)) {
+      throw Errors.validationFailed('A valid "role" is required in the body.');
+    }
+
+    const result = await authService.switchRole(itsNumber, role);
     return res.status(200).json(successResponse(result));
   } catch (err) {
     return next(err);
@@ -72,4 +89,4 @@ async function forgotPassword(req, res, next) {
   }
 }
 
-module.exports = { login, getMe, changePassword, forgotPassword };
+module.exports = { login, switchRole, getMe, changePassword, forgotPassword };
