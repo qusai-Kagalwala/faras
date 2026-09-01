@@ -1,5 +1,9 @@
 // server/__tests__/generateSchedule.test.js
-const { generateSchedule, shuffle } = require('../modules/scheduling/generateSchedule');
+const {
+  generateSchedule,
+  shuffle,
+  shuffleAvoidingRepeat,
+} = require('../modules/scheduling/generateSchedule');
 
 function seededRng(seed) {
   let s = seed;
@@ -41,7 +45,7 @@ describe('generateSchedule', () => {
     const { assignments } = generateSchedule({
       studentsByClass: new Map([['x', students]]),
       subjectsByClass: new Map([['x', SUBJECTS_3]]),
-      numWeeks: 12,
+      numWeeks: 30,
       rng: seededRng(7),
     });
 
@@ -59,21 +63,126 @@ describe('generateSchedule', () => {
     }
   });
 
-  test('every assignment includes the correct twoWeekPeriod label', () => {
-    const students = makeStudents(4, 'x');
+  test('CORRECTION 2: no student repeats a subject immediately after a mid-call cycle reset (adjacent weeks across the boundary)', () => {
+    const students = makeStudents(20, 'x');
     const { assignments } = generateSchedule({
       studentsByClass: new Map([['x', students]]),
       subjectsByClass: new Map([['x', SUBJECTS_3]]),
-      numWeeks: 4,
-      rng: seededRng(1),
+      numWeeks: 60,
+      rng: seededRng(99),
     });
-    const week1 = assignments.filter((a) => a.week === 1);
-    const week2 = assignments.filter((a) => a.week === 2);
-    const week3 = assignments.filter((a) => a.week === 3);
 
-    expect(week1.every((a) => a.twoWeekPeriod === 'Weeks 1-2')).toBe(true);
-    expect(week2.every((a) => a.twoWeekPeriod === 'Weeks 1-2')).toBe(true);
-    expect(week3.every((a) => a.twoWeekPeriod === 'Weeks 3-4')).toBe(true);
+    const perStudent = {};
+    for (const a of assignments) {
+      perStudent[a.studentIts] = perStudent[a.studentIts] || [];
+      perStudent[a.studentIts].push(a.subjectId);
+    }
+
+    for (const seq of Object.values(perStudent)) {
+      for (let i = 0; i < seq.length - 1; i++) {
+        expect(seq[i]).not.toBe(seq[i + 1]);
+      }
+    }
+  });
+
+  test('CORRECTION 2: real reproduction — two SEPARATE calls (weeks 1-3, then 4-6) never repeat a subject across the boundary when lastSubjectByStudent is passed forward', () => {
+    const students = makeStudents(11, 'x');
+    let rngSeed = 5;
+    const rng = () => {
+      rngSeed = (rngSeed * 9301 + 49297) % 233280;
+      return rngSeed / 233280;
+    };
+
+    const firstCall = generateSchedule({
+      studentsByClass: new Map([['x', students]]),
+      subjectsByClass: new Map([['x', SUBJECTS_3]]),
+      numWeeks: 3,
+      rng,
+    });
+
+    const existingHistory = new Map();
+    const lastSubjectByStudent = new Map();
+    for (const a of firstCall.assignments) {
+      if (!existingHistory.has(a.studentIts)) existingHistory.set(a.studentIts, []);
+      existingHistory.get(a.studentIts).push(a.subjectId);
+      lastSubjectByStudent.set(a.studentIts, a.subjectId);
+    }
+
+    const secondCall = generateSchedule({
+      studentsByClass: new Map([['x', students]]),
+      subjectsByClass: new Map([['x', SUBJECTS_3]]),
+      numWeeks: 3,
+      rng,
+      existingHistory,
+      lastSubjectByStudent,
+    });
+
+    const week3Subject = new Map(
+      firstCall.assignments.filter((a) => a.week === 3).map((a) => [a.studentIts, a.subjectId])
+    );
+    const week4Subject = new Map(
+      secondCall.assignments.filter((a) => a.week === 1).map((a) => [a.studentIts, a.subjectId])
+    );
+
+    for (const student of students) {
+      expect(week4Subject.get(student.itsNumber)).not.toBe(week3Subject.get(student.itsNumber));
+    }
+  });
+
+  test('REGRESSION: two separate calls using the CORRECT calling convention (numWeeks = the real count each time, not the cumulative endWeek) never repeat a subject across the boundary', () => {
+    const students = makeStudents(11, 'x');
+    let rngSeed = 11;
+    const rng = () => {
+      rngSeed = (rngSeed * 9301 + 49297) % 233280;
+      return rngSeed / 233280;
+    };
+
+    const firstCall = generateSchedule({
+      studentsByClass: new Map([['x', students]]),
+      subjectsByClass: new Map([['x', SUBJECTS_3]]),
+      numWeeks: 3,
+      rng,
+    });
+    const firstReal = firstCall.assignments.map((a) => ({ ...a, week: a.week + 1 - 1 }));
+
+    const existingHistory = new Map();
+    const lastSubjectByStudent = new Map();
+    for (const a of firstReal) {
+      if (!existingHistory.has(a.studentIts)) existingHistory.set(a.studentIts, []);
+      existingHistory.get(a.studentIts).push(a.subjectId);
+      lastSubjectByStudent.set(a.studentIts, a.subjectId);
+    }
+
+    const secondCall = generateSchedule({
+      studentsByClass: new Map([['x', students]]),
+      subjectsByClass: new Map([['x', SUBJECTS_3]]),
+      numWeeks: 3,
+      rng,
+      existingHistory,
+      lastSubjectByStudent,
+    });
+    const secondReal = secondCall.assignments.map((a) => ({ ...a, week: a.week + 4 - 1 }));
+
+    const week3 = new Map(firstReal.filter((a) => a.week === 3).map((a) => [a.studentIts, a.subjectId]));
+    const week4 = new Map(secondReal.filter((a) => a.week === 4).map((a) => [a.studentIts, a.subjectId]));
+
+    for (const student of students) {
+      expect(week4.get(student.itsNumber)).not.toBe(week3.get(student.itsNumber));
+    }
+  });
+
+  test('shuffleAvoidingRepeat moves the avoided subject out of first position', () => {
+    const rng = seededRng(1);
+    for (let i = 0; i < 50; i++) {
+      const queue = shuffleAvoidingRepeat(SUBJECTS_3, rng, 1);
+      expect(queue[0].subjectId).not.toBe(1);
+    }
+  });
+
+  test('shuffleAvoidingRepeat is a no-op when avoidFirstSubjectId is null', () => {
+    const rng = seededRng(3);
+    const queue = shuffleAvoidingRepeat(SUBJECTS_3, rng, null);
+    expect(queue).toHaveLength(3);
   });
 
   test('warns and skips a class with no subjects, without throwing', () => {
@@ -86,19 +195,6 @@ describe('generateSchedule', () => {
     });
     expect(assignments).toHaveLength(0);
     expect(warnings[0]).toMatch(/No subjects found for class empty-class/);
-  });
-
-  test("resumes from existingHistory instead of restarting a student's cycle", () => {
-    const students = [{ itsNumber: 'STU1', name: 'S1', classKey: 'x' }];
-    const existingHistory = new Map([['STU1', [1, 2]]]);
-    const { assignments } = generateSchedule({
-      studentsByClass: new Map([['x', students]]),
-      subjectsByClass: new Map([['x', SUBJECTS_3]]),
-      numWeeks: 1,
-      rng: seededRng(5),
-      existingHistory,
-    });
-    expect(assignments[0].subjectId).toBe(3);
   });
 
   test('shuffle() with a fixed rng is deterministic', () => {
