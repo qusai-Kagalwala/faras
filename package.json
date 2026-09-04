@@ -20,5 +20,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "leo-profanity": "^1.9.0",
+    "openai": "^7.10.0"
+  }
 }

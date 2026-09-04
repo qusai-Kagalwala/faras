@@ -14,6 +14,7 @@ const REQUIRED_VARS = [
   'SMTP_PASS',
   'NODE_ENV',
   'PORT',
+  'LLM_API_KEY',
 ];
 
 function validateEnv() {
@@ -39,6 +40,7 @@ module.exports = {
   databaseUrl: process.env.DATABASE_URL,
   sessionSecret: process.env.SESSION_SECRET,
   passwordEncryptionKey: process.env.PASSWORD_ENCRYPTION_KEY,
+  llmApiKey: process.env.LLM_API_KEY,
   smtp: {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT, 10),
