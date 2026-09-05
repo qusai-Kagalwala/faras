@@ -1,7 +1,4 @@
 // server/modules/classes/classes.routes.js
-// Super Admin only — this configures the academic structure that
-// scheduling.service.js depends on (class_subjects).
-
 const express = require('express');
 const {
   getClasses,

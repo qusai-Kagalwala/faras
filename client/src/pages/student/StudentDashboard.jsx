@@ -1,18 +1,12 @@
 // client/src/pages/student/StudentDashboard.jsx
 // Mobile-first per NFR-U-01. Never render teacher name/ITS here or in any
 // child component — subject only (FR-SP-02).
-//
-// KNOWN GAP: there is no "current week" resolver anywhere in the system yet
-// (no cycle-start-date logic exists) — hardcoded to week 1 for now. Replace
-// this with a real resolved value once that logic exists.
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { surveyApi } from '../../api/survey.api';
 import LikertQuestion from '../../components/survey/LikertQuestion';
 import FreeTextQuestion from '../../components/survey/FreeTextQuestion';
-
-const CURRENT_WEEK = 1;
 
 export default function StudentDashboard() {
   const { token, logout } = useAuth();
@@ -26,7 +20,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     surveyApi
-      .getCurrent(token, CURRENT_WEEK)
+      .getCurrent(token)
       .then((res) => setSurvey(res.data))
       .catch((err) => setError(err.message || "Could not load this week's survey."))
       .finally(() => setLoading(false));
@@ -40,7 +34,7 @@ export default function StudentDashboard() {
         type === 'likert' ? { statementId, likertValue: value } : { statementId, freeText: value };
 
       try {
-        await surveyApi.submit(token, CURRENT_WEEK, [answerPayload]);
+        await surveyApi.submit(token, [answerPayload]);
         setAnswers((prev) => ({ ...prev, [statementId]: value }));
       } catch (err) {
         setSaveError(err.message || 'Could not save your answer. Please try again.');

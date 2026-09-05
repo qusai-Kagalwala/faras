@@ -1,8 +1,4 @@
 // server/modules/classes/classes.service.js
-// Super Admin management of the academic structure: classes, subjects,
-// and which teacher is mapped to which subject for which class. This is
-// the real data source scheduling.service.js reads from (class_subjects).
-
 const db = require('../../config/db');
 const { Errors } = require('../../middleware/errorHandler');
 

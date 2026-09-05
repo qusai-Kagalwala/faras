@@ -15,12 +15,14 @@ const authRoutes = require('./modules/auth/auth.routes');
 const schedulingRoutes = require('./modules/scheduling/scheduling.routes');
 const surveyRoutes = require('./modules/survey/survey.routes');
 const mappingRoutes = require('./modules/mapping/mapping.routes');
-const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const approvalRoutes = require('./modules/approval/approval.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
 const usersRoutes = require('./modules/users/users.routes');
 const aiReportsRoutes = require('./modules/ai-reports/aiReports.routes');
 const classesRoutes = require('./modules/classes/classes.routes');
+const cycleRoutes = require('./modules/cycle/cycle.routes');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+
 const app = express();
 
 app.use(helmet());
@@ -49,7 +51,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/classes', classesRoutes);
-
+app.use('/api/cycle', cycleRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last

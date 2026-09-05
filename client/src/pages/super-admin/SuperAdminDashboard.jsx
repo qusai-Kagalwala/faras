@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { schedulingApi } from '../../api/scheduling.api';
 import { usersApi } from '../../api/users.api';
 import { classesApi } from '../../api/classes.api';
+import { cycleApi } from '../../api/cycle.api';
 import { ROLE_LABELS } from '../../utils/roles';
 
 function ConfigCard({ title, description }) {
@@ -535,6 +536,98 @@ function ClassesSubjectsCard() {
   );
 }
 
+function CycleSettingsCard() {
+  const { token } = useAuth();
+  const [weekInput, setWeekInput] = useState('');
+  const [yearInput, setYearInput] = useState('');
+  const [currentWeek, setCurrentWeek] = useState(null);
+  const [academicYear, setAcademicYear] = useState(null);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  function loadCurrentCycle() {
+    cycleApi
+      .getCurrentCycle(token)
+      .then((res) => {
+        setCurrentWeek(res.data.currentWeek);
+        setAcademicYear(res.data.academicYear);
+      })
+      .catch((err) => setError(err.message || 'Could not load the current cycle.'));
+  }
+
+  useEffect(loadCurrentCycle, [token]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await cycleApi.setCurrentCycle(
+        token,
+        parseInt(weekInput, 10),
+        yearInput.trim() || academicYear
+      );
+      setCurrentWeek(res.data.currentWeek);
+      setAcademicYear(res.data.academicYear);
+      setWeekInput('');
+      setYearInput('');
+    } catch (err) {
+      setError(err.message || 'Could not set the current cycle.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+      <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">Cycle Settings</h2>
+      <p className="mb-4 text-sm text-text-secondary">
+        Every student&apos;s survey shows whichever week is set here. Advance it deliberately —
+        it never changes on its own, so a holiday or delay never throws it out of sync. Runs on
+        the Hijri calendar, matching WAMAS&apos;s convention.
+      </p>
+
+      <p className="mb-3 text-sm text-text-primary">
+        Current: <span className="font-medium">Week {currentWeek ?? '—'}</span>,{' '}
+        <span className="font-medium">{academicYear ?? '—'}</span> AH
+      </p>
+
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="number"
+          min={1}
+          max={22}
+          value={weekInput}
+          onChange={(e) => setWeekInput(e.target.value)}
+          placeholder="Week 1-22"
+          className="flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          required
+        />
+        <input
+          type="text"
+          value={yearInput}
+          onChange={(e) => setYearInput(e.target.value)}
+          placeholder="e.g. 1447-1448"
+          className="flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? 'Saving...' : 'Set'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mt-3 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
+          {error}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function SuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-cream">
@@ -548,6 +641,7 @@ export default function SuperAdminDashboard() {
         />
         <UserRoleManagementCard />
         <CreateAccountCard />
+        <CycleSettingsCard />
       </main>
     </div>
   );
