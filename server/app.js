@@ -20,6 +20,7 @@ const approvalRoutes = require('./modules/approval/approval.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
 const usersRoutes = require('./modules/users/users.routes');
 const aiReportsRoutes = require('./modules/ai-reports/aiReports.routes');
+const classesRoutes = require('./modules/classes/classes.routes');
 const app = express();
 
 app.use(helmet());
@@ -47,6 +48,8 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
+app.use('/api/classes', classesRoutes);
+
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
