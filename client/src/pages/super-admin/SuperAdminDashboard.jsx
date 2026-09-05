@@ -165,6 +165,25 @@ function UserRoleManagementCard() {
     }
   }
 
+  async function handleDeactivate() {
+    setError(null);
+    try {
+      await usersApi.deactivate(token, itsNumber.trim());
+      setRoles(null);
+    } catch (err) {
+      setError(err.message || 'Could not deactivate this account.');
+    }
+  }
+
+  async function handleReactivate() {
+    setError(null);
+    try {
+      await usersApi.reactivate(token, itsNumber.trim());
+    } catch (err) {
+      setError(err.message || 'Could not reactivate this account.');
+    }
+  }
+
   return (
     <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
       <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
@@ -213,6 +232,125 @@ function UserRoleManagementCard() {
               </label>
             );
           })}
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={handleDeactivate}
+              className="rounded-md border border-error/40 px-3 py-1.5 text-sm text-error transition hover:bg-error-bg"
+            >
+              Deactivate Account
+            </button>
+            <button
+              type="button"
+              onClick={handleReactivate}
+              className="rounded-md border border-success/40 px-3 py-1.5 text-sm text-success transition hover:bg-success-bg"
+            >
+              Reactivate Account
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CreateAccountCard() {
+  const { token } = useAuth();
+  const [itsNumber, setItsNumber] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [initialRole, setInitialRole] = useState('teacher');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setResult(null);
+    setSubmitting(true);
+    try {
+      const res = await usersApi.createAccount(
+        token,
+        itsNumber.trim(),
+        name.trim(),
+        email.trim() || undefined,
+        initialRole
+      );
+      setResult(res.data);
+      setItsNumber('');
+      setName('');
+      setEmail('');
+    } catch (err) {
+      setError(err.message || 'Could not create this account.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+      <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+        Create Staff Account
+      </h2>
+      <p className="mb-4 text-sm text-text-secondary">
+        Starter password is always the account&apos;s own ITS Number — the new user will be
+        required to change it on first login.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <input
+          type="text"
+          value={itsNumber}
+          onChange={(e) => setItsNumber(e.target.value)}
+          placeholder="8-digit ITS Number"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          required
+        />
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Full name"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          required
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email (optional)"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+        />
+        <select
+          value={initialRole}
+          onChange={(e) => setInitialRole(e.target.value)}
+          className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+        >
+          {ASSIGNABLE_ROLES.map((role) => (
+            <option key={role} value={role}>
+              {ROLE_LABELS[role].label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? 'Creating...' : 'Create Account'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mt-3 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
+          {error}
+        </div>
+      )}
+      {result && (
+        <div className="mt-3 rounded-md border border-success/20 bg-success-bg px-3 py-2 text-sm text-success">
+          Created account for {result.name} ({result.itsNumber}).
         </div>
       )}
     </section>
@@ -234,6 +372,7 @@ export default function SuperAdminDashboard() {
           description="Maintain the master feedback statement bank and focus areas."
         />
         <UserRoleManagementCard />
+        <CreateAccountCard />
       </main>
     </div>
   );

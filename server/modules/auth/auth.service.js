@@ -9,6 +9,12 @@
 // role for the session defaults to the highest-hierarchy assigned role
 // (getHighestRole); switchRole() lets the person change it afterward
 // without re-entering their password.
+//
+// FR-AUTH-08: a deactivated staff account (users.is_active = FALSE) must
+// not be able to log in at all — the query below filters it out entirely,
+// so a deactivated account falls through to the same generic "Invalid ITS
+// Number or password" error as any other failed login, never revealing
+// that the account exists but is deactivated.
 
 const db = require('../../config/db');
 const { encryptPassword, decryptPassword } = require('../../utils/passwordCrypto');
@@ -22,7 +28,7 @@ async function findAccountByIts(itsNumber) {
   let studentResult;
   try {
     userResult = await db.query(
-      'SELECT its_number, role, name, email, encrypted_password, must_change_password FROM users WHERE its_number = $1',
+      'SELECT its_number, role, name, email, encrypted_password, must_change_password, is_active FROM users WHERE its_number = $1 AND is_active = TRUE',
       [itsNumber]
     );
 
@@ -46,6 +52,11 @@ async function findAccountByIts(itsNumber) {
   return { account: null, role: null };
 }
 
+/**
+ * Returns every role currently assigned to a staff ITS number, from the
+ * authoritative user_roles table. Falls back to [primaryRole] if
+ * user_roles somehow has no rows for them yet (defensive).
+ */
 async function getAssignedRoles(itsNumber, fallbackRole) {
   const result = await db.query('SELECT role FROM user_roles WHERE its_number = $1', [itsNumber]);
   if (result.rows.length === 0) {
@@ -76,6 +87,8 @@ async function login(itsNumber, password) {
   const { account, role } = await findAccountByIts(itsNumber);
 
   if (!account) {
+    // Deliberately identical error for "no such account", "wrong
+    // password", AND "deactivated account" — never reveal which.
     throw Errors.unauthorized('Invalid ITS Number or password.');
   }
 
@@ -97,6 +110,11 @@ async function login(itsNumber, password) {
   };
 }
 
+/**
+ * Switches the active role for an already-logged-in staff person, without
+ * requiring their password again. Re-verifies the requested role is
+ * genuinely assigned to them server-side — never trusts the client alone.
+ */
 async function switchRole(itsNumber, requestedRole) {
   const { account, role } = await findAccountByIts(itsNumber);
 
@@ -168,12 +186,16 @@ async function changePassword(itsNumber, role, currentPassword, newPassword) {
 }
 
 async function forgotPassword(itsNumber) {
+  // FR-AUTH-04: emails back the user's CURRENT password (not a reset link).
+  // Deliberate SRS-documented trade-off (NFR-S-06).
   const { account } = await findAccountByIts(itsNumber);
 
   const genericMessage = {
     message: 'If an account with that ITS Number exists, a password email has been sent.',
   };
 
+  // Deliberately identical response whether or not the account exists, or
+  // has an email on file — never reveal which (prevents ITS enumeration).
   if (!account || !account.email) {
     return genericMessage;
   }
@@ -194,6 +216,7 @@ async function forgotPassword(itsNumber) {
     });
   } catch (err) {
     console.error('[FARAS] Failed to send forgot-password email for', itsNumber, ':', err.message);
+    // Still return the generic response — don't leak delivery failure state.
   }
 
   return genericMessage;
