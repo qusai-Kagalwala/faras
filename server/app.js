@@ -22,6 +22,7 @@ const aiReportsRoutes = require('./modules/ai-reports/aiReports.routes');
 const classesRoutes = require('./modules/classes/classes.routes');
 const cycleRoutes = require('./modules/cycle/cycle.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const questionsRoutes = require('./modules/questions/questions.routes');
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/classes', classesRoutes);
 app.use('/api/cycle', cycleRoutes);
+app.use('/api/questions', questionsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
