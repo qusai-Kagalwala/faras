@@ -798,6 +798,137 @@ function QuestionBankCard() {
   );
 }
 
+function WeekFocusPlanCard() {
+  const { token } = useAuth();
+  const [allFocusAreas, setAllFocusAreas] = useState(null);
+  const [selectedWeek, setSelectedWeek] = useState('');
+  const [activeFocusAreas, setActiveFocusAreas] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    questionsApi
+      .getStatements(token)
+      .then((res) => {
+        const distinct = Array.from(new Set(res.data.statements.map((s) => s.focus_area))).sort();
+        setAllFocusAreas(distinct);
+      })
+      .catch((err) => setError(err.message || 'Could not load focus areas.'))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  function handleSelectWeek(e) {
+    const week = e.target.value;
+    setSelectedWeek(week);
+    setError(null);
+    if (!week) {
+      setActiveFocusAreas([]);
+      return;
+    }
+    questionsApi
+      .getWeekFocusPlan(token)
+      .then((res) => {
+        const entry = res.data.plan.find((p) => p.weekNumber === parseInt(week, 10));
+        setActiveFocusAreas(entry ? entry.focusAreas : []);
+      })
+      .catch((err) => setError(err.message || "Could not load this week's focus plan."));
+  }
+
+  function toggleFocusArea(focusArea) {
+    setActiveFocusAreas((prev) =>
+      prev.includes(focusArea) ? prev.filter((f) => f !== focusArea) : [...prev, focusArea]
+    );
+  }
+
+  async function handleSave() {
+    setError(null);
+    setSaving(true);
+    try {
+      await questionsApi.setWeekFocusAreas(token, parseInt(selectedWeek, 10), activeFocusAreas);
+    } catch (err) {
+      setError(err.message || 'Could not save this week\u2019s focus plan.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="mb-4 break-inside-avoid rounded-lg border border-border bg-white p-6 shadow-sm">
+        <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+          Week Focus Plan
+        </h2>
+        <p className="text-sm text-text-secondary">Loading...</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-4 break-inside-avoid rounded-lg border border-border bg-white p-6 shadow-sm">
+      <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
+        Week Focus Plan
+      </h2>
+      <p className="mb-4 text-sm text-text-secondary">
+        Choose which focus areas are active for a given week (FR-SUR-02). A week can have more
+        than one active focus area.
+      </p>
+
+      {error && (
+        <div className="mb-3 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
+          {error}
+        </div>
+      )}
+
+      <select
+        value={selectedWeek}
+        onChange={handleSelectWeek}
+        className="mb-3 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+      >
+        <option value="">Select a week...</option>
+        {Array.from({ length: 22 }, (_, i) => i + 1).map((w) => (
+          <option key={w} value={w}>
+            Week {w}
+          </option>
+        ))}
+      </select>
+
+      {selectedWeek && allFocusAreas && (
+        <>
+          <div className="mb-3 max-h-64 space-y-2 overflow-y-auto">
+            {allFocusAreas.length === 0 && (
+              <p className="text-sm text-text-tertiary">
+                No focus areas exist yet — add statements to the Question Bank first.
+              </p>
+            )}
+            {allFocusAreas.map((focusArea) => (
+              <label
+                key={focusArea}
+                className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+              >
+                <span className="text-text-primary">{focusArea}</span>
+                <input
+                  type="checkbox"
+                  checked={activeFocusAreas.includes(focusArea)}
+                  onChange={() => toggleFocusArea(focusArea)}
+                />
+              </label>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || activeFocusAreas.length === 0}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : `Save Week ${selectedWeek}'s Focus Plan`}
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function SuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-cream">
@@ -809,6 +940,7 @@ export default function SuperAdminDashboard() {
         <UserRoleManagementCard />
         <CreateAccountCard />
         <CycleSettingsCard />
+        <WeekFocusPlanCard />
       </main>
     </div>
   );

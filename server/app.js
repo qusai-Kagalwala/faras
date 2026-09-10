@@ -21,8 +21,9 @@ const usersRoutes = require('./modules/users/users.routes');
 const aiReportsRoutes = require('./modules/ai-reports/aiReports.routes');
 const classesRoutes = require('./modules/classes/classes.routes');
 const cycleRoutes = require('./modules/cycle/cycle.routes');
-const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const questionsRoutes = require('./modules/questions/questions.routes');
+const auditRoutes = require('./modules/audit/audit.routes');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -39,6 +40,7 @@ if (env.nodeEnv !== 'production') {
   app.use(morgan('dev'));
 }
 
+// Health check — confirms the process is up behind IIS/IISNode.
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
@@ -54,6 +56,7 @@ app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/classes', classesRoutes);
 app.use('/api/cycle', cycleRoutes);
 app.use('/api/questions', questionsRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
@@ -62,6 +65,7 @@ const server = app.listen(env.port, () => {
   console.log(`[FARAS] server listening on port ${env.port} (${env.nodeEnv})`);
 });
 
+/* ─── Graceful shutdown ────────────────────────────────────────────────── */
 function shutdown(signal) {
   console.log(`[FARAS] ${signal} received. Shutting down gracefully...`);
   server.close(() => {

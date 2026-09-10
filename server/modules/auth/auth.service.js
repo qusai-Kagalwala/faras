@@ -15,6 +15,9 @@
 // so a deactivated account falls through to the same generic "Invalid ITS
 // Number or password" error as any other failed login, never revealing
 // that the account exists but is deactivated.
+//
+// AUDIT LOGGING: successful logins are recorded via logAction() —
+// fire-and-forget, never blocks or breaks the login itself if logging fails.
 
 const db = require('../../config/db');
 const { encryptPassword, decryptPassword } = require('../../utils/passwordCrypto');
@@ -22,6 +25,7 @@ const { signToken } = require('../../utils/jwt');
 const { sendForgotPasswordEmail } = require('../../utils/mailer');
 const { Errors } = require('../../middleware/errorHandler');
 const { getHighestRole } = require('../../../shared/constants');
+const { logAction } = require('../audit/auditLog.service');
 
 async function findAccountByIts(itsNumber) {
   let userResult;
@@ -102,6 +106,8 @@ async function login(itsNumber, password) {
   const activeRole = assignedRoles.length > 1 ? getHighestRole(assignedRoles) : assignedRoles[0];
 
   const token = signToken({ itsNumber: account.its_number, role: activeRole });
+
+  logAction(itsNumber, 'login', { role: activeRole });
 
   return {
     token,

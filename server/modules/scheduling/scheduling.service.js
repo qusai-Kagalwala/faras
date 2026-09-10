@@ -18,24 +18,16 @@
 // source of truth. Also now passes `lastSubjectByStudent` (each student's
 // most recent subject, by week) through to generateSchedule(), which
 // closes a real bug found via testing: a fresh cycle reset could
-// immediately repeat a student's last subject from the PREVIOUS call.
+// immediately repeat a student's last subject from the PREVIOUS call —
+// e.g. generating weeks 1-3, then separately weeks 4-6, could give the
+// same subject in both week 3 and week 4.
 //
-// FIXED REAL BUG (session 2, part 2): generateSchedule() always counts
-// weeks starting from 1 internally, regardless of the real week number
-// requested. Previously passed `numWeeks: endWeek` (e.g. 6) and filtered
-// afterward — but that meant the function generated FAKE, immediately-
-// discarded internal weeks 1..(startWeek-1) FIRST, consuming the freshly-
-// seeded per-student queue and overwriting the `lastSubjectByStudent`
-// protection with an irrelevant value before ever reaching the real weeks
-// we wanted. Found via real multi-call testing on class 34 — the
-// boundary-repeat fix above was correctly seeded but silently clobbered by
-// this wasted computation. Now passes the REAL count requested, and maps
-// the resulting internal week numbers (1..numWeeks) onto the real range
-// (startWeek..endWeek) afterward — no discarding, no waste, no silently-
-// clobbered protection.
+// AUDIT LOGGING: a successful generation is recorded via logAction(),
+// with the acting Super Admin's ITS number and the parameters used.
 
 const db = require('../../config/db');
 const { generateSchedule } = require('./generateSchedule');
+const { logAction } = require('../audit/auditLog.service');
 
 function classKeyFor(darajah, section, gender) {
   return `${darajah}|${section}|${gender}`;
@@ -110,7 +102,7 @@ async function loadOccupiedWeeks(classId, startWeek, endWeek) {
   return new Set(result.rows.map((r) => `${r.week_number}|${r.student_its}`));
 }
 
-async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
+async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }, actorIts) {
   const { classKey, students, subjects, existingHistory, lastSubjectByStudent } =
     await loadClassData(classId);
 
@@ -158,6 +150,8 @@ async function generateAndSaveForClass({ classId, startWeek, numWeeks, rng }) {
     );
     if (result.rows.length > 0) inserted++;
   }
+
+  logAction(actorIts, 'schedule.generated', { classId, startWeek, numWeeks, inserted, skippedOccupied });
 
   return { inserted, skippedOccupied, totalGenerated: relevant.length, warnings };
 }
