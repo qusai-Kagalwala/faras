@@ -1,5 +1,6 @@
 // client/src/api/analytics.api.js
-// Matches server routes: GET /api/analytics/teacher/:teacherIts
+// Matches server routes: GET /api/analytics/teacher/:teacherIts,
+// GET /api/analytics/department
 
 import { apiClient } from './client';
 
@@ -10,4 +11,6 @@ function authHeader(token) {
 export const analyticsApi = {
   getTeacherTrend: (token, teacherIts) =>
     apiClient.get(`/analytics/teacher/${teacherIts}`, authHeader(token)),
+
+  getDepartmentTrend: (token) => apiClient.get('/analytics/department', authHeader(token)),
 };
