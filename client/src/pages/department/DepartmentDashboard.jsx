@@ -6,12 +6,90 @@ import { useAuth } from '../../context/AuthContext';
 import { mappingApi } from '../../api/mapping.api';
 import { aiReportsApi } from '../../api/aiReports.api';
 import { approvalApi } from '../../api/approval.api';
+import { analyticsApi } from '../../api/analytics.api';
 
 const NEXT_STAGE = {
   generated: 'under_review',
   under_review: 'approved',
   approved: 'dispatched',
 };
+
+function ScoreBar({ score }) {
+  const percent = score ? (score / 5) * 100 : 0;
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-cream-dark">
+      <div
+        className="h-full rounded-full bg-primary transition-all"
+        style={{ width: `${percent}%` }}
+      />
+    </div>
+  );
+}
+
+function DepartmentAnalyticsCard() {
+  const { token } = useAuth();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    analyticsApi
+      .getDepartmentTrend(token)
+      .then((res) => setData(res.data))
+      .catch((err) => setError(err.message || 'Could not load department analytics.'))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  return (
+    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+      <h2 className="mb-4 font-display text-lg font-semibold text-dark-brown">
+        Department-Wide Analytics
+      </h2>
+
+      {loading && <p className="text-sm text-text-secondary">Loading...</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
+
+      {data && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="mb-2 text-sm font-medium text-text-primary">Weekly Trend</h3>
+            {data.weeklyTrend.length === 0 && (
+              <p className="text-sm text-text-tertiary">No feedback data yet.</p>
+            )}
+            <div className="space-y-2">
+              {data.weeklyTrend.map((w) => (
+                <div key={w.weekNumber}>
+                  <div className="mb-1 flex justify-between text-xs text-text-secondary">
+                    <span>Week {w.weekNumber}</span>
+                    <span>{w.averageScore !== null ? `${w.averageScore} / 5` : '—'}</span>
+                  </div>
+                  <ScoreBar score={w.averageScore} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-medium text-text-primary">Focus Area Breakdown</h3>
+            {data.focusAreaBreakdown.length === 0 && (
+              <p className="text-sm text-text-tertiary">No feedback data yet.</p>
+            )}
+            <div className="space-y-2">
+              {data.focusAreaBreakdown.map((f) => (
+                <div key={f.focusArea}>
+                  <div className="mb-1 flex justify-between text-xs text-text-secondary">
+                    <span>{f.focusArea}</span>
+                    <span>{f.averageScore !== null ? `${f.averageScore} / 5` : '—'}</span>
+                  </div>
+                  <ScoreBar score={f.averageScore} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function TeacherLookupCard() {
   const { token } = useAuth();
@@ -293,6 +371,7 @@ export default function DepartmentDashboard() {
       <TopBar title="Report Review" />
       <main className="space-y-4 p-6">
         <ReportQueueCard />
+        <DepartmentAnalyticsCard />
         <TeacherLookupCard />
       </main>
     </div>
