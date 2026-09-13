@@ -1,6 +1,9 @@
 // client/src/pages/department/ReportQueue.jsx
-// Extracted from the old monolithic DepartmentDashboard.jsx (R-03).
-// Content unchanged from the original ReportRow + ReportQueueCard.
+// N-07: rows now show real teacher/subject names instead of a bare ITS
+// number. N-06: for teacher-track reports, an optional side-by-side
+// comparison of the raw/unfiltered mapped feedback against the polished
+// teacher-facing version, so Department can judge the filtering itself
+// before dispatching — not just trust it blindly.
 
 import { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
@@ -9,6 +12,7 @@ import StageBadge from '../../components/common/StageBadge';
 import { useAuth } from '../../context/AuthContext';
 import { aiReportsApi } from '../../api/aiReports.api';
 import { approvalApi } from '../../api/approval.api';
+import { mappingApi } from '../../api/mapping.api';
 
 const NEXT_STAGE = {
   generated: 'under_review',
@@ -16,9 +20,72 @@ const NEXT_STAGE = {
   approved: 'dispatched',
 };
 
+function RawVsTeacherComparison({ teacherIts, teacherFacingFeedback, token }) {
+  const [raw, setRaw] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    mappingApi
+      .getTeacherFeedback(token, teacherIts)
+      .then((res) => setRaw(res.data))
+      .catch((err) => setError(err.message || 'Could not load raw feedback.'))
+      .finally(() => setLoading(false));
+  }, [token, teacherIts]);
+
+  if (loading) return <p className="text-sm text-text-secondary">Loading raw data...</p>;
+  if (error) return <p className="text-sm text-error">{error}</p>;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 rounded-md border border-border bg-cream p-3 md:grid-cols-2">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+          Raw &mdash; Unfiltered
+        </p>
+        {raw.categorizedFeedback.map((f) => (
+          <div key={f.focusArea} className="mb-2 rounded-md border border-border bg-white p-2">
+            <div className="flex justify-between text-xs font-medium text-text-primary">
+              <span>{f.focusArea}</span>
+              <span>{f.averageScore !== null ? `${f.averageScore} / 5` : '—'}</span>
+            </div>
+            {f.representativeQuotes.length > 0 && (
+              <ul className="mt-1 space-y-1 text-xs italic text-text-tertiary">
+                {f.representativeQuotes.map((q, i) => (
+                  <li key={i}>&ldquo;{q}&rdquo;</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+          Teacher-Facing &mdash; Filtered
+        </p>
+        {teacherFacingFeedback.map((f) => (
+          <div key={f.focusArea} className="mb-2 rounded-md border border-border bg-white p-2">
+            <div className="flex justify-between text-xs font-medium text-text-primary">
+              <span>{f.focusArea}</span>
+              <span>{f.averageScore !== null ? `${f.averageScore} / 5` : '—'}</span>
+            </div>
+            {f.representativeQuotes.length > 0 && (
+              <ul className="mt-1 space-y-1 text-xs italic text-text-tertiary">
+                {f.representativeQuotes.map((q, i) => (
+                  <li key={i}>&ldquo;{q}&rdquo;</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReportRow({ report, token, onAdvanced }) {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [showComparison, setShowComparison] = useState(false);
   const [signOffNote, setSignOffNote] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -58,6 +125,13 @@ function ReportRow({ report, token, onAdvanced }) {
 
   const nextStage = NEXT_STAGE[report.current_stage];
 
+  const label =
+    report.track === 'admin'
+      ? 'Department-wide'
+      : `${report.teacher_name || `Teacher ${report.teacher_its}`}${
+          report.subject_name ? ` — ${report.subject_name}` : ''
+        }`;
+
   return (
     <div className="rounded-md border border-border p-4">
       <button
@@ -66,9 +140,7 @@ function ReportRow({ report, token, onAdvanced }) {
         className="flex w-full items-center justify-between text-left"
       >
         <span className="text-sm">
-          <span className="font-medium text-text-primary">
-            {report.track === 'admin' ? 'Department-wide' : `Teacher ${report.teacher_its}`}
-          </span>{' '}
+          <span className="font-medium text-text-primary">{label}</span>{' '}
           <span className="text-text-tertiary">— {report.cycle_id}</span>
         </span>
         <StageBadge stage={report.current_stage} />
@@ -104,6 +176,22 @@ function ReportRow({ report, token, onAdvanced }) {
                   ))}
                 </ul>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowComparison((s) => !s)}
+                className="text-xs text-primary underline"
+              >
+                {showComparison ? 'Hide' : 'Show'} raw vs. teacher-facing comparison
+              </button>
+
+              {showComparison && (
+                <RawVsTeacherComparison
+                  teacherIts={report.teacher_its}
+                  teacherFacingFeedback={detail.report_json.categorizedFeedback}
+                  token={token}
+                />
+              )}
             </>
           )}
 
