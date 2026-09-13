@@ -1,6 +1,7 @@
 // client/src/pages/super-admin/SuperAdminDashboard.jsx
 import { useState, useEffect } from 'react';
-import TopBar from '../../components/common/TopBar';
+import AppLayout from '../../components/layout/AppLayout';
+import { NAV_ITEMS } from '../../config/navItems';
 import { useAuth } from '../../context/AuthContext';
 import { schedulingApi } from '../../api/scheduling.api';
 import { usersApi } from '../../api/users.api';
@@ -1048,8 +1049,7 @@ function ManageStudentCard() {
 
 export default function SuperAdminDashboard() {
   return (
-    <div className="min-h-screen bg-cream">
-      <TopBar title="System Configuration" />
+    <AppLayout title="System Configuration" navItems={NAV_ITEMS.super_admin}>
       <main className="columns-1 gap-4 p-6 sm:columns-2 lg:columns-3">
         <ClassesSubjectsCard />
         <SchedulingEngineCard />
@@ -1060,6 +1060,6 @@ export default function SuperAdminDashboard() {
         <WeekFocusPlanCard />
         <ManageStudentCard />
       </main>
-    </div>
+    </AppLayout>
   );
 }

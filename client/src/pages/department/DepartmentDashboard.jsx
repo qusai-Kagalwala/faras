@@ -1,6 +1,7 @@
 // client/src/pages/department/DepartmentDashboard.jsx
 import { useState, useEffect } from 'react';
-import TopBar from '../../components/common/TopBar';
+import AppLayout from '../../components/layout/AppLayout';
+import { NAV_ITEMS } from '../../config/navItems';
 import StageBadge from '../../components/common/StageBadge';
 import { useAuth } from '../../context/AuthContext';
 import { mappingApi } from '../../api/mapping.api';
@@ -367,13 +368,12 @@ function ReportQueueCard() {
 
 export default function DepartmentDashboard() {
   return (
-    <div className="min-h-screen bg-cream">
-      <TopBar title="Report Review" />
+    <AppLayout title="Report Review" navItems={NAV_ITEMS.department}>
       <main className="space-y-4 p-6">
         <ReportQueueCard />
         <DepartmentAnalyticsCard />
         <TeacherLookupCard />
       </main>
-    </div>
+    </AppLayout>
   );
 }

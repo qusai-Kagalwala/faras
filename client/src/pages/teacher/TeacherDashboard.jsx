@@ -1,6 +1,7 @@
 // client/src/pages/teacher/TeacherDashboard.jsx
 import { useState, useEffect } from 'react';
-import TopBar from '../../components/common/TopBar';
+import AppLayout from '../../components/layout/AppLayout';
+import { NAV_ITEMS } from '../../config/navItems';
 import StageBadge from '../../components/common/StageBadge';
 import { useAuth } from '../../context/AuthContext';
 import { analyticsApi } from '../../api/analytics.api';
@@ -134,8 +135,7 @@ export default function TeacherDashboard() {
   }, [token, user]);
 
   return (
-    <div className="min-h-screen bg-cream">
-      <TopBar title="My Reports" />
+    <AppLayout title="My Reports" navItems={NAV_ITEMS.teacher}>
       <main className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
         {user && <MyReportsSection token={token} itsNumber={user.itsNumber} />}
 
@@ -194,6 +194,6 @@ export default function TeacherDashboard() {
           )}
         </section>
       </main>
-    </div>
+    </AppLayout>
   );
 }
