@@ -24,6 +24,7 @@ const cycleRoutes = require('./modules/cycle/cycle.routes');
 const questionsRoutes = require('./modules/questions/questions.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
 const studentsRoutes = require('./modules/students/students.routes');
+const reviewGroupsRoutes = require('./modules/review-groups/reviewGroups.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api/cycle', cycleRoutes);
 app.use('/api/questions', questionsRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/students', studentsRoutes);
+app.use('/api/review-groups', reviewGroupsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
