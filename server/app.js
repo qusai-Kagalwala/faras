@@ -23,6 +23,7 @@ const classesRoutes = require('./modules/classes/classes.routes');
 const cycleRoutes = require('./modules/cycle/cycle.routes');
 const questionsRoutes = require('./modules/questions/questions.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
+const studentsRoutes = require('./modules/students/students.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -57,6 +58,7 @@ app.use('/api/classes', classesRoutes);
 app.use('/api/cycle', cycleRoutes);
 app.use('/api/questions', questionsRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/students', studentsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
