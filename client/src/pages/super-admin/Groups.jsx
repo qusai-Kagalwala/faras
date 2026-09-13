@@ -44,7 +44,7 @@ function CreateGroupCard({ subjects, onCreated }) {
   }
 
   return (
-    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+    <section className="mb-4 break-inside-avoid rounded-lg border border-border bg-white p-6 shadow-sm">
       <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
         Create Review Group
       </h2>
@@ -115,7 +115,7 @@ function CreateGroupCard({ subjects, onCreated }) {
 
 function GroupsListCard({ groups }) {
   return (
-    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
+    <section className="mb-4 break-inside-avoid rounded-lg border border-border bg-white p-6 shadow-sm">
       <h2 className="mb-4 font-display text-lg font-semibold text-dark-brown">
         Existing Review Groups
       </h2>
