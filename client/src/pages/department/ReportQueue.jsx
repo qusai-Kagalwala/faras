@@ -1,185 +1,20 @@
-// client/src/pages/department/DepartmentDashboard.jsx
+// client/src/pages/department/ReportQueue.jsx
+// Extracted from the old monolithic DepartmentDashboard.jsx (R-03).
+// Content unchanged from the original ReportRow + ReportQueueCard.
+
 import { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import { NAV_ITEMS } from '../../config/navItems';
 import StageBadge from '../../components/common/StageBadge';
 import { useAuth } from '../../context/AuthContext';
-import { mappingApi } from '../../api/mapping.api';
 import { aiReportsApi } from '../../api/aiReports.api';
 import { approvalApi } from '../../api/approval.api';
-import { analyticsApi } from '../../api/analytics.api';
 
 const NEXT_STAGE = {
   generated: 'under_review',
   under_review: 'approved',
   approved: 'dispatched',
 };
-
-function ScoreBar({ score }) {
-  const percent = score ? (score / 5) * 100 : 0;
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-cream-dark">
-      <div
-        className="h-full rounded-full bg-primary transition-all"
-        style={{ width: `${percent}%` }}
-      />
-    </div>
-  );
-}
-
-function DepartmentAnalyticsCard() {
-  const { token } = useAuth();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    analyticsApi
-      .getDepartmentTrend(token)
-      .then((res) => setData(res.data))
-      .catch((err) => setError(err.message || 'Could not load department analytics.'))
-      .finally(() => setLoading(false));
-  }, [token]);
-
-  return (
-    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
-      <h2 className="mb-4 font-display text-lg font-semibold text-dark-brown">
-        Department-Wide Analytics
-      </h2>
-
-      {loading && <p className="text-sm text-text-secondary">Loading...</p>}
-      {error && <p className="text-sm text-error">{error}</p>}
-
-      {data && (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-text-primary">Weekly Trend</h3>
-            {data.weeklyTrend.length === 0 && (
-              <p className="text-sm text-text-tertiary">No feedback data yet.</p>
-            )}
-            <div className="space-y-2">
-              {data.weeklyTrend.map((w) => (
-                <div key={w.weekNumber}>
-                  <div className="mb-1 flex justify-between text-xs text-text-secondary">
-                    <span>Week {w.weekNumber}</span>
-                    <span>{w.averageScore !== null ? `${w.averageScore} / 5` : '—'}</span>
-                  </div>
-                  <ScoreBar score={w.averageScore} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-text-primary">Focus Area Breakdown</h3>
-            {data.focusAreaBreakdown.length === 0 && (
-              <p className="text-sm text-text-tertiary">No feedback data yet.</p>
-            )}
-            <div className="space-y-2">
-              {data.focusAreaBreakdown.map((f) => (
-                <div key={f.focusArea}>
-                  <div className="mb-1 flex justify-between text-xs text-text-secondary">
-                    <span>{f.focusArea}</span>
-                    <span>{f.averageScore !== null ? `${f.averageScore} / 5` : '—'}</span>
-                  </div>
-                  <ScoreBar score={f.averageScore} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function TeacherLookupCard() {
-  const { token } = useAuth();
-  const [teacherIts, setTeacherIts] = useState('');
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleLookup(e) {
-    e.preventDefault();
-    setError(null);
-    setResult(null);
-    setLoading(true);
-
-    try {
-      const res = await mappingApi.getTeacherFeedback(token, teacherIts.trim());
-      setResult(res.data);
-    } catch (err) {
-      setError(err.message || 'Could not load feedback for this teacher.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <section className="rounded-lg border border-border bg-white p-6 shadow-sm">
-      <h2 className="mb-4 font-display text-lg font-semibold text-dark-brown">
-        Teacher Feedback Lookup
-      </h2>
-
-      <form onSubmit={handleLookup} className="mb-4 flex gap-2">
-        <input
-          type="text"
-          value={teacherIts}
-          onChange={(e) => setTeacherIts(e.target.value)}
-          placeholder="8-digit Teacher ITS Number"
-          className="flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
-          required
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Look Up'}
-        </button>
-      </form>
-
-      {error && (
-        <div className="rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <div>
-          <p className="mb-3 text-sm text-text-secondary">
-            <span className="font-medium text-dark-brown">{result.teacherName}</span> —{' '}
-            {result.totalResponsesMapped} response(s) mapped
-          </p>
-
-          {result.categorizedFeedback.length === 0 && (
-            <p className="text-sm text-text-tertiary">No feedback recorded for this teacher yet.</p>
-          )}
-
-          <div className="space-y-3">
-            {result.categorizedFeedback.map((f) => (
-              <div key={f.focusArea} className="rounded-md border border-border p-3">
-                <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-medium text-text-primary">{f.focusArea}</span>
-                  <span className="text-text-secondary">
-                    {f.averageScore !== null ? `${f.averageScore} / 5` : 'No score data'}
-                  </span>
-                </div>
-                {f.representativeQuotes.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-sm italic text-text-tertiary">
-                    {f.representativeQuotes.map((q, i) => (
-                      <li key={i}>&ldquo;{q}&rdquo;</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
 
 function ReportRow({ report, token, onAdvanced }) {
   const [expanded, setExpanded] = useState(false);
@@ -366,13 +201,11 @@ function ReportQueueCard() {
   );
 }
 
-export default function DepartmentDashboard() {
+export default function ReportQueue() {
   return (
-    <AppLayout title="Report Review" navItems={NAV_ITEMS.department}>
-      <main className="space-y-4 p-6">
+    <AppLayout title="Report Review Queue" navItems={NAV_ITEMS.department}>
+      <main className="p-6">
         <ReportQueueCard />
-        <DepartmentAnalyticsCard />
-        <TeacherLookupCard />
       </main>
     </AppLayout>
   );

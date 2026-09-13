@@ -11,7 +11,9 @@ import QuestionBank from '../pages/super-admin/QuestionBank';
 import Users from '../pages/super-admin/Users';
 import Students from '../pages/super-admin/Students';
 import CycleSettings from '../pages/super-admin/CycleSettings';
-import DepartmentDashboard from '../pages/department/DepartmentDashboard';
+import DepartmentDashboard from '../pages/department/Dashboard';
+import ReportQueue from '../pages/department/ReportQueue';
+import TeacherLookup from '../pages/department/TeacherLookup';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard';
 import StudentDashboard from '../pages/student/StudentDashboard';
 
@@ -94,6 +96,23 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/department/reports"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.DEPARTMENT]}>
+            <ReportQueue />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/department/lookup"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.DEPARTMENT]}>
+            <TeacherLookup />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/teacher"
         element={
