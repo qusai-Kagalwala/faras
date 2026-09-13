@@ -1,31 +1,30 @@
 # FARAS — Deployment Checklist
 
-Companion to `FARAS_IIS_Deployment_Guide.md`, tailored to the actual current
-codebase (server routes, real env vars, real migration list). This has
-**not** been run against a real Windows Server/IIS instance — nothing in
-this repo's sandbox can do that — so treat every step below as prepared
-and verified against the code, but still needing a real first run on the
-actual deployment server.
+Companion to `FARAS_IIS_Deployment_Guide.md`, refreshed against the actual
+current codebase (29 migrations, all backend modules through the
+Group/Review-Cycle feature and notifications). This has **not** been run
+against a real Windows Server/IIS instance — nothing in this repo's
+sandbox can do that — so treat every step below as prepared and verified
+against the code, but still needing a real first run on the actual
+deployment server.
 
 ## 1. Folder naming — read this first
 
 Vite's `npm run build` (run inside `client/`) outputs to `client/dist/`,
 **not** `client/` itself. The deployment guide's folder diagram expects a
 deployed folder literally named `client/` containing the *built* output.
-That means on the server:
 
 ```
 C:\inetpub\wwwroot\faras\
   ├── client\          ← the CONTENTS of this repo's client/dist/, not the source client/ folder
   ├── server\          ← this repo's server/ folder (source, not built — Node runs it directly)
-  └── web.config       ← this file, from the repo root
+  └── web.config       ← from the repo root
 ```
 
 Copying the whole source `client/` folder (with `src/`, `node_modules/`,
-etc.) instead of just `dist/`'s contents is the most likely first mistake —
-double-check this specifically.
+etc.) instead of just `dist/`'s contents is the most likely first mistake.
 
-## 2. Run all 24 migrations, in order
+## 2. Run all 29 migrations, in order
 
 ```
 000_extensions_and_functions.sql
@@ -52,16 +51,27 @@ double-check this specifically.
 021_users_is_active.sql
 022_cycle_settings.sql
 023_cycle_settings_academic_year.sql
+024_students_is_active.sql
+025_kitabs.sql
+026_review_groups.sql
+027_notifications.sql
+028_ai_reports_subject.sql
 ```
 
-`022_cycle_settings.sql` seeds one row (`current_week = 1`) — without it,
-`GET /api/cycle/current-week` throws an internal error, and the student
-survey can never resolve a week. Don't skip it.
+Two worth flagging specifically:
+- **`022_cycle_settings.sql`** seeds one row (`current_week = 1`) —
+  without it, `GET /api/cycle/current-week` throws, and the student
+  survey can never resolve a week.
+- **`025_kitabs.sql`** contains real seed data (61 kitabs) and 187
+  `UPDATE` statements backfilling `class_subjects.kitab_id` from the real
+  `Teachers.csv` import — this is a genuinely large migration file, not
+  just schema. Confirm it completes without truncation/timeout on the
+  real server before moving on.
 
 ## 3. Required environment variables
 
-Matches `server/config/env.js`'s `REQUIRED_VARS` exactly — the server
-refuses to boot (`process.exit(1)`) if any of these are missing:
+Matches `server/config/env.js`'s `REQUIRED_VARS` exactly — unchanged
+since the feature work landed, still just these 10:
 
 | Variable | Purpose |
 |---|---|
@@ -71,62 +81,71 @@ refuses to boot (`process.exit(1)`) if any of these are missing:
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Forgot-password email delivery |
 | `NODE_ENV` | Set to `production` |
 | `PORT` | Internal port IISNode proxies to |
-| `LLM_API_KEY` | AI report generation (OpenAI, confirmed) |
+| `LLM_API_KEY` | AI report generation (OpenAI, confirmed working live) |
 
-Set these as IIS Application Pool environment variables, or via a
-`.env` file placed on the server outside version control — never commit
-real values to the repo (`server/.env` is already gitignored; only
-`server/.env.example` — with no real values — should ever be committed).
+Set these as IIS Application Pool environment variables, or a `.env` file
+outside version control. Never commit real values — only
+`server/.env.example` (no real values) should ever be in the repo.
 
 ## 4. Build and deploy steps
 
 1. `cd client && npm run build` — copy the **contents of `client/dist/`**
-   (not the folder itself) into the server's `client/` folder.
-2. Copy the `server/` folder's source as-is (no build step — Node runs it
-   directly). Run `npm install --production` on the server inside
-   `server/`, or ship `node_modules/` if the server has no internet access.
+   into the server's `client/` folder.
+2. Copy `server/`'s source as-is. Run `npm install --production` inside
+   `server/` on the target machine (needs internet access, or ship
+   `node_modules/` directly) — note the newer dependencies added this
+   session: `openai`, `leo-profanity`.
 3. Place this repo's root `web.config` at the IIS site root.
-4. In IIS Manager: create the site/application pointing at the FARAS root
-   folder. Set the Application Pool to **No Managed Code**.
-5. Bind the SSL certificate (443) and confirm HTTP to HTTPS redirect —
-   HTTPS is a hard requirement (NFR-S-01).
-6. Confirm `DATABASE_URL` resolves from the server (test with a simple
-   query script before wiring up the full app).
-7. Hit `GET /api/health` — expect `{"status":"ok"}`. This confirms
-   IISNode is correctly proxying to the real, current `server/app.js`.
-8. Smoke-test login as all 4 roles: Super Admin, Department, Teacher,
-   Student — real ITS Number + starter password (= their own ITS Number),
-   confirm the forced password-change flow fires (`mustChangePassword`).
-9. Complete one real, full survey submission as a student end-to-end.
-10. As Super Admin, set the cycle's current week (Cycle Settings card) —
-    without this, every student survey request fails with "no cycle
-    configured."
+4. IIS Manager: create the site/application, Application Pool set to
+   **No Managed Code**.
+5. Bind SSL (443), confirm HTTP to HTTPS redirect (NFR-S-01, hard
+   requirement).
+6. Confirm `DATABASE_URL` resolves from the server before wiring up the
+   full app.
+7. Hit `GET /api/health` — expect `{"status":"ok"}`.
+8. Smoke-test login as all 4 roles, confirm forced password-change fires
+   on first login.
+9. Complete one real, full survey submission as a student.
+10. As Super Admin, set the cycle's current week (Cycle Settings page) —
+    without this, every student survey request fails.
+11. New this session — smoke-test the Group/Review-Cycle feature
+    specifically, since it's the newest and most complex piece:
+    - Create a Review Group (Review Groups page)
+    - As that Department Head, propose and start a cycle (Review
+      Cycles page, "Start New Cycle" tab)
+    - Confirm a real student sees the resulting survey
+    - Confirm "View Existing Cycle" correctly shows the per-class
+      breakdown once started
+12. Confirm the notification bell (top-right on every staff page, and in
+    the student header) shows real notifications — trigger one by
+    assigning/removing a role on a test account and logging in as that
+    account.
+13. Confirm the mobile hamburger menu appears and works on a narrow
+    viewport for Super Admin and Department (Teacher/Student are
+    single-page, no menu expected).
 
-## 5. Known gap - scheduled jobs
+## 5. Known gap — scheduled jobs
 
-The deployment guide calls for Windows Task Scheduler to handle
-recurring jobs (schedule regeneration, cycle/report generation). Nothing
-in this codebase currently exposes a script or endpoint specifically
-designed to be called on a schedule - POST /api/scheduling/generate,
-POST /api/ai-reports/teacher/:id, and POST /api/ai-reports/admin all
-exist and work, but are designed for on-demand Super Admin triggering
-via the UI, not unattended scheduled execution. If AJSM wants a real
-recurring job (e.g. "advance the cycle week automatically every Monday"),
-that's a real, separate feature - not something to assume is covered by
-these endpoints existing.
+Nothing in this codebase is built for unattended scheduled execution.
+Schedule generation, review cycle proposing/starting, and AI report
+generation are all deliberately on-demand, human-triggered actions (via
+UI buttons now, not just curl). If AJSM wants a real recurring job (e.g.
+"advance the cycle week automatically every Monday," or "auto-send
+survey reminders every Thursday"), that's a genuinely separate feature —
+not something to assume is covered by what exists today.
 
-## 6. Pre-launch checklist (from the deployment guide, unchanged)
+## 6. Pre-launch checklist
 
 - [ ] HTTPS enforced, valid certificate installed
 - [ ] All secrets in environment variables, not source control
-- [ ] RBAC verified for all 4 roles
+- [ ] RBAC verified for all 4 roles, plus the Department-owns-their-own-Group
+      check (a Department Head cannot act on a Review Group they don't head)
 - [ ] Blind-collection check: confirm no API response to a Student-role
-      token includes teacher name or ITS number (already covered by
-      survey.controller.js's response shape - re-verify on the real
-      deployed instance, not just in dev)
-- [ ] Scheduled job question resolved (see Section 5 above) - or
-      explicitly decided that manual, on-demand triggering is
-      acceptable for launch
+      token includes teacher name or ITS number
+- [ ] Scheduled job question resolved (Section 5) — or explicitly decided
+      that on-demand triggering is acceptable for launch
 - [ ] Database backups configured
-- [ ] Staging smoke test completed before pointing the production
-      domain at this server
+- [ ] Staging smoke test completed, including the full Group/Review-Cycle
+      flow with real data (already verified once in a real dev
+      environment this session — re-confirm on the actual production
+      server)
