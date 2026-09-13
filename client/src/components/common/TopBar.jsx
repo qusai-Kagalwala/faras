@@ -45,7 +45,6 @@ export default function TopBar({ title }) {
             )}
           </span>
         )}
-        <NotificationBell />
         {availableRoles.length > 1 && (
           <button
             onClick={() => setShowPicker(true)}
@@ -60,6 +59,7 @@ export default function TopBar({ title }) {
         >
           Log Out
         </button>
+        <NotificationBell />
       </div>
 
       {showPicker && (

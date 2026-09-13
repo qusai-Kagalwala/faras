@@ -55,10 +55,10 @@ export default function StudentDashboard() {
         <div className="flex items-center justify-between">
           <p className="font-display text-lg font-bold text-white">FARAS</p>
           <div className="flex items-center gap-2">
-            <NotificationBell />
             <button onClick={logout} className="text-sm text-white/80 underline">
               Log Out
             </button>
+            <NotificationBell />
           </div>
         </div>
         <h1 className="mt-3 text-lg font-semibold text-white">This Week&apos;s Feedback</h1>
