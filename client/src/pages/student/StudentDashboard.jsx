@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { surveyApi } from '../../api/survey.api';
 import LikertQuestion from '../../components/survey/LikertQuestion';
 import FreeTextQuestion from '../../components/survey/FreeTextQuestion';
+import NotificationBell from '../../components/common/NotificationBell';
 
 export default function StudentDashboard() {
   const { token, logout } = useAuth();
@@ -53,9 +54,12 @@ export default function StudentDashboard() {
       <header className="bg-primary px-4 py-5">
         <div className="flex items-center justify-between">
           <p className="font-display text-lg font-bold text-white">FARAS</p>
-          <button onClick={logout} className="text-sm text-white/80 underline">
-            Log Out
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button onClick={logout} className="text-sm text-white/80 underline">
+              Log Out
+            </button>
+          </div>
         </div>
         <h1 className="mt-3 text-lg font-semibold text-white">This Week&apos;s Feedback</h1>
         {survey && <p className="text-sm text-white/80">Subject: {survey.subjectName}</p>}
