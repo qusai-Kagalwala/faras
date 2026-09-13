@@ -4,7 +4,13 @@ import ProtectedRoute from './ProtectedRoute';
 import { ROLES } from '../utils/roles';
 
 import LoginPage from '../pages/auth/LoginPage';
-import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
+import SuperAdminDashboard from '../pages/super-admin/Dashboard';
+import ClassesSubjects from '../pages/super-admin/ClassesSubjects';
+import Scheduling from '../pages/super-admin/Scheduling';
+import QuestionBank from '../pages/super-admin/QuestionBank';
+import Users from '../pages/super-admin/Users';
+import Students from '../pages/super-admin/Students';
+import CycleSettings from '../pages/super-admin/CycleSettings';
 import DepartmentDashboard from '../pages/department/DepartmentDashboard';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard';
 import StudentDashboard from '../pages/student/StudentDashboard';
@@ -31,6 +37,55 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/super-admin/classes"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <ClassesSubjects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/scheduling"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <Scheduling />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/questions"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <QuestionBank />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/users"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <Users />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/students"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <Students />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/cycle"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <CycleSettings />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/department"
         element={

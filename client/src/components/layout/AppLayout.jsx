@@ -11,7 +11,7 @@ export default function AppLayout({ title, navItems, children }) {
   return (
     <div className="min-h-screen bg-cream">
       <TopBar title={title} />
-      <div className="flex">
+      <div className="flex min-h-screen">
         <Sidebar items={navItems} />
         <div className="flex-1">{children}</div>
       </div>
