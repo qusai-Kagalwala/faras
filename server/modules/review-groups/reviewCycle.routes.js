@@ -9,6 +9,7 @@ const {
   toggleProposal,
   startReviewCycle,
   getCycleProgress,
+  getCycleProgressByClass,
   sendReminders,
   getTeachersInGroup,
 } = require('./reviewCycle.controller');
@@ -47,6 +48,12 @@ router.get(
   authenticate,
   requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
   getCycleProgress
+);
+router.get(
+  '/:groupId/progress-by-class/:week',
+  authenticate,
+  requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
+  getCycleProgressByClass
 );
 router.post(
   '/:groupId/remind',

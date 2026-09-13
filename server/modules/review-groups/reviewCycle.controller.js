@@ -119,6 +119,23 @@ async function getCycleProgress(req, res, next) {
   }
 }
 
+async function getCycleProgressByClass(req, res, next) {
+  try {
+    const groupId = parseGroupId(req);
+    await assertOwnsGroup(groupId, req);
+
+    const week = parseInt(req.params.week, 10);
+    if (!Number.isInteger(week)) {
+      throw Errors.validationFailed('A valid integer week is required in the URL.');
+    }
+
+    const result = await reviewCycleService.getCycleProgressByClass(groupId, week);
+    return res.status(200).json(successResponse(result));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function sendReminders(req, res, next) {
   try {
     const groupId = parseGroupId(req);
@@ -154,6 +171,7 @@ module.exports = {
   toggleProposal,
   startReviewCycle,
   getCycleProgress,
+  getCycleProgressByClass,
   sendReminders,
   getTeachersInGroup,
 };

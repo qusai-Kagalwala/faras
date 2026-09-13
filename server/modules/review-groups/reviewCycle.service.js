@@ -277,12 +277,87 @@ async function getTeachersInGroup(reviewGroupId) {
   return result.rows;
 }
 
+/**
+ * Same precise per-student response tracking as getCycleProgress, but
+ * broken down by class+teacher instead of one aggregate number — this is
+ * what the Department Head actually needs to see across a Group's many
+ * classes (e.g. all 21 for English), with the teacher and a way to
+ * generate their report right there per row.
+ */
+async function getCycleProgressByClass(reviewGroupId, weekNumber) {
+  const { classSubjectRows } = await loadGroupScope(reviewGroupId);
+  const teacherByClassId = new Map(classSubjectRows.map((r) => [r.class_id, r.teacher_its]));
+
+  const startedResult = await db.query(
+    `SELECT p.student_its, p.class_id, c.display_name AS class_name, sch.id AS schedule_id
+     FROM review_cycle_proposals p
+     JOIN classes c ON c.id = p.class_id
+     LEFT JOIN schedule sch ON sch.week_number = p.week_number
+       AND sch.class_id = p.class_id
+       AND sch.subject_id = p.subject_id
+       AND sch.student_its = p.student_its
+     WHERE p.review_group_id = $1 AND p.week_number = $2 AND p.status = 'started'`,
+    [reviewGroupId, weekNumber]
+  );
+
+  const scheduleIds = startedResult.rows.map((r) => r.schedule_id).filter(Boolean);
+  let respondedScheduleIds = new Set();
+  if (scheduleIds.length > 0) {
+    const respondedResult = await db.query(
+      'SELECT DISTINCT schedule_id FROM survey_responses WHERE schedule_id = ANY($1::int[])',
+      [scheduleIds]
+    );
+    respondedScheduleIds = new Set(respondedResult.rows.map((r) => r.schedule_id));
+  }
+
+  const byClass = new Map();
+  for (const row of startedResult.rows) {
+    if (!byClass.has(row.class_id)) {
+      byClass.set(row.class_id, {
+        classId: row.class_id,
+        className: row.class_name,
+        teacherIts: teacherByClassId.get(row.class_id) || null,
+        shared: 0,
+        respondedCount: 0,
+        pendingCount: 0,
+      });
+    }
+    const entry = byClass.get(row.class_id);
+    entry.shared++;
+    if (row.schedule_id && respondedScheduleIds.has(row.schedule_id)) {
+      entry.respondedCount++;
+    } else {
+      entry.pendingCount++;
+    }
+  }
+
+  const classes = Array.from(byClass.values());
+
+  // Attach teacher names in one batch query rather than N+1.
+  const teacherIts = [...new Set(classes.map((c) => c.teacherIts).filter(Boolean))];
+  if (teacherIts.length > 0) {
+    const teacherResult = await db.query(
+      'SELECT its_number, name FROM teachers WHERE its_number = ANY($1::char(8)[])',
+      [teacherIts]
+    );
+    const nameByIts = new Map(teacherResult.rows.map((t) => [t.its_number, t.name]));
+    for (const c of classes) {
+      c.teacherName = c.teacherIts ? nameByIts.get(c.teacherIts) || null : null;
+    }
+  }
+
+  classes.sort((a, b) => a.className.localeCompare(b.className));
+
+  return { classes };
+}
+
 module.exports = {
   proposeReviewCycle,
   getProposals,
   toggleProposalIncluded,
   startReviewCycle,
   getCycleProgress,
+  getCycleProgressByClass,
   sendReminders,
   getTeachersInGroup,
 };
