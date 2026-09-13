@@ -1,8 +1,12 @@
 // client/src/pages/department/ReviewCycles.jsx
-// The Department Head's actual review-cycle workflow: pick a Group and
-// week, propose a cycle (algorithm + repeat candidates), toggle inclusion,
-// start it, track real response progress, remind pending students, and
-// generate AI reports for the teachers involved — all from one page.
+// FIXED REAL UX GAP: previously, viewing an already-started cycle's
+// progress required clicking "Propose Cycle" again in the SAME browser
+// session (since proposals/activeWeek were just local state, reset on
+// every page load) — confusing, since re-proposing an already-started
+// cycle feels wrong. Now there's a separate "Load Cycle" action that
+// simply VIEWS whatever exists for that group+week (read-only,
+// getProposals), and "Propose Cycle" is only offered when nothing exists
+// yet for that week.
 
 import { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
@@ -211,6 +215,7 @@ export default function ReviewCycles() {
   const [activeWeek, setActiveWeek] = useState(null);
   const [proposals, setProposals] = useState(null);
   const [error, setError] = useState(null);
+  const [loadingCycle, setLoadingCycle] = useState(false);
   const [proposing, setProposing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startResult, setStartResult] = useState(null);
@@ -229,10 +234,28 @@ export default function ReviewCycles() {
       .catch((err) => setError(err.message || 'Could not load proposals.'));
   }
 
-  async function handlePropose(e) {
+  async function handleLoadCycle(e) {
     e.preventDefault();
     setError(null);
     setStartResult(null);
+    setLoadingCycle(true);
+    try {
+      const res = await reviewCycleApi.getProposals(
+        token,
+        parseInt(selectedGroupId, 10),
+        parseInt(weekInput, 10)
+      );
+      setProposals(res.data.proposals);
+      setActiveWeek(parseInt(weekInput, 10));
+    } catch (err) {
+      setError(err.message || 'Could not load this cycle.');
+    } finally {
+      setLoadingCycle(false);
+    }
+  }
+
+  async function handlePropose() {
+    setError(null);
     setProposing(true);
     try {
       const res = await reviewCycleApi.propose(
@@ -269,18 +292,18 @@ export default function ReviewCycles() {
 
   const includedCount = proposals ? proposals.filter((p) => p.included).length : 0;
   const alreadyStarted = proposals && proposals.length > 0 && proposals[0].status === 'started';
+  const nothingExistsYet = proposals !== null && proposals.length === 0;
 
   return (
     <AppLayout title="Review Cycles" navItems={NAV_ITEMS.department}>
       <main className="p-6">
         <section className="mb-4 rounded-lg border border-border bg-white p-6 shadow-sm">
           <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
-            Create Review Cycle
+            Review Cycle
           </h2>
           <p className="mb-4 text-sm text-text-secondary">
-            Choose your Group and a week. Algorithm-picked students (not yet reviewed under this
-            Group) are included by default — you can uncheck them. Repeat candidates (already
-            reviewed before) are opt-in.
+            Select your Group and a week to view an existing cycle&apos;s progress, or propose a
+            brand-new one if nothing has been created for that week yet.
           </p>
 
           {error && (
@@ -297,13 +320,12 @@ export default function ReviewCycles() {
 
           {groups && groups.length > 1 && (
             <p className="mb-2 rounded-md bg-primary-muted px-3 py-2 text-xs text-text-primary">
-              You head {groups.length} Review Groups — select which one below before proposing a
-              cycle.
+              You head {groups.length} Review Groups — select which one below.
             </p>
           )}
 
           {groups && groups.length > 0 && (
-            <form onSubmit={handlePropose} className="flex flex-wrap gap-2">
+            <form onSubmit={handleLoadCycle} className="flex flex-wrap gap-2">
               <select
                 value={selectedGroupId}
                 onChange={(e) => {
@@ -333,16 +355,33 @@ export default function ReviewCycles() {
               />
               <button
                 type="submit"
-                disabled={proposing}
+                disabled={loadingCycle}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {proposing ? 'Proposing...' : 'Propose Cycle'}
+                {loadingCycle ? 'Loading...' : 'Load Cycle'}
               </button>
             </form>
           )}
         </section>
 
-        {proposals && (
+        {nothingExistsYet && (
+          <section className="mb-4 rounded-lg border border-border bg-white p-6 shadow-sm">
+            <p className="mb-3 text-sm text-text-secondary">
+              Nothing has been proposed yet for Week {weekInput} — click below to generate the
+              algorithm/repeat candidate list.
+            </p>
+            <button
+              type="button"
+              onClick={handlePropose}
+              disabled={proposing}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {proposing ? 'Proposing...' : 'Propose Cycle'}
+            </button>
+          </section>
+        )}
+
+        {proposals && proposals.length > 0 && (
           <section className="mb-4 rounded-lg border border-border bg-white p-6 shadow-sm">
             <h2 className="mb-2 font-display text-lg font-semibold text-dark-brown">
               Week {activeWeek} Proposal
@@ -350,12 +389,6 @@ export default function ReviewCycles() {
             <p className="mb-4 text-sm text-text-secondary">
               {includedCount} of {proposals.length} students currently included.
             </p>
-
-            {proposals.length === 0 && (
-              <p className="text-sm text-text-tertiary">
-                No students in scope for this subject yet.
-              </p>
-            )}
 
             <div className="max-h-96 space-y-2 overflow-y-auto">
               {proposals.map((p) => (
