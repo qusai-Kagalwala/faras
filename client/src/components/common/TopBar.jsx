@@ -1,12 +1,14 @@
 // client/src/components/common/TopBar.jsx
 // Shared staff dashboard header. Per the design system: primary teal is
-// used for the top bar/sidebar/primary actions. Desktop-first (NFR-U-03).
+// used for the top bar/sidebar/primary actions. Desktop-first (NFR-U-03),
+// but wraps gracefully on narrow screens rather than overflowing (U-01).
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { DASHBOARD_PATH_BY_ROLE, ROLE_LABELS } from '../../utils/roles';
 import RolePickerModal from './RolePickerModal';
+import NotificationBell from './NotificationBell';
 
 export default function TopBar({ title }) {
   const { user, availableRoles, switchRole, askEveryTime, setAskEveryTime, logout } = useAuth();
@@ -29,20 +31,21 @@ export default function TopBar({ title }) {
   }
 
   return (
-    <header className="flex items-center justify-between bg-primary px-6 py-4 shadow-sm">
+    <header className="flex flex-wrap items-center justify-between gap-3 bg-primary px-4 py-4 shadow-sm sm:px-6">
       <div>
         <p className="font-display text-lg font-bold text-white">FARAS</p>
         <h1 className="text-sm text-white/80">{title}</h1>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         {user && (
-          <span className="text-sm text-white/90">
+          <span className="hidden text-sm text-white/90 sm:inline">
             {user.name}
             {availableRoles.length > 1 && (
               <span className="ml-1 text-white/60">({ROLE_LABELS[user.role].label})</span>
             )}
           </span>
         )}
+        <NotificationBell />
         {availableRoles.length > 1 && (
           <button
             onClick={() => setShowPicker(true)}
