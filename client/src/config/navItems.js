@@ -39,6 +39,11 @@ export const NAV_ITEMS = {
       path: '/super-admin/cycle',
       description: 'Set which week and Hijri academic year the whole school is currently on.',
     },
+    {
+      label: 'Review Groups',
+      path: '/super-admin/groups',
+      description: 'Assign a subject to a Department Head, forming a Review Group.',
+    },
   ],
   department: [
     { label: 'Dashboard', path: '/department' },
@@ -51,6 +56,11 @@ export const NAV_ITEMS = {
       label: 'Teacher Lookup',
       path: '/department/lookup',
       description: 'Look up a specific teacher\u2019s mapped feedback by focus area.',
+    },
+    {
+      label: 'Review Cycles',
+      path: '/department/review-cycles',
+      description: 'Propose and start a review cycle for your assigned subject.',
     },
   ],
   teacher: [{ label: 'Dashboard', path: '/teacher' }],

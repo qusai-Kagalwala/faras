@@ -11,9 +11,11 @@ import QuestionBank from '../pages/super-admin/QuestionBank';
 import Users from '../pages/super-admin/Users';
 import Students from '../pages/super-admin/Students';
 import CycleSettings from '../pages/super-admin/CycleSettings';
+import Groups from '../pages/super-admin/Groups';
 import DepartmentDashboard from '../pages/department/Dashboard';
 import ReportQueue from '../pages/department/ReportQueue';
 import TeacherLookup from '../pages/department/TeacherLookup';
+import ReviewCycles from '../pages/department/ReviewCycles';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard';
 import StudentDashboard from '../pages/student/StudentDashboard';
 
@@ -87,6 +89,14 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/super-admin/groups"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <Groups />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/department"
@@ -109,6 +119,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={[ROLES.DEPARTMENT]}>
             <TeacherLookup />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/department/review-cycles"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.DEPARTMENT]}>
+            <ReviewCycles />
           </ProtectedRoute>
         }
       />
