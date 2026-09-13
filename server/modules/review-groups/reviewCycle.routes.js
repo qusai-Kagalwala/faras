@@ -8,6 +8,9 @@ const {
   getProposals,
   toggleProposal,
   startReviewCycle,
+  getCycleProgress,
+  sendReminders,
+  getTeachersInGroup,
 } = require('./reviewCycle.controller');
 const authenticate = require('../../middleware/authenticate');
 const requireRole = require('../../middleware/requireRole');
@@ -38,6 +41,24 @@ router.post(
   authenticate,
   requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
   startReviewCycle
+);
+router.get(
+  '/:groupId/progress/:week',
+  authenticate,
+  requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
+  getCycleProgress
+);
+router.post(
+  '/:groupId/remind',
+  authenticate,
+  requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
+  sendReminders
+);
+router.get(
+  '/:groupId/teachers',
+  authenticate,
+  requireRole(ROLES.DEPARTMENT, ROLES.SUPER_ADMIN),
+  getTeachersInGroup
 );
 
 module.exports = router;

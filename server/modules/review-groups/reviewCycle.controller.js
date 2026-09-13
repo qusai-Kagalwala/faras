@@ -102,4 +102,58 @@ async function startReviewCycle(req, res, next) {
   }
 }
 
-module.exports = { proposeReviewCycle, getProposals, toggleProposal, startReviewCycle };
+async function getCycleProgress(req, res, next) {
+  try {
+    const groupId = parseGroupId(req);
+    await assertOwnsGroup(groupId, req);
+
+    const week = parseInt(req.params.week, 10);
+    if (!Number.isInteger(week)) {
+      throw Errors.validationFailed('A valid integer week is required in the URL.');
+    }
+
+    const result = await reviewCycleService.getCycleProgress(groupId, week);
+    return res.status(200).json(successResponse(result));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function sendReminders(req, res, next) {
+  try {
+    const groupId = parseGroupId(req);
+    await assertOwnsGroup(groupId, req);
+
+    const { week } = req.body;
+    if (!Number.isInteger(week)) {
+      throw Errors.validationFailed('An integer "week" is required in the body.');
+    }
+
+    const result = await reviewCycleService.sendReminders(groupId, week, req.user.itsNumber);
+    return res.status(200).json(successResponse(result));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function getTeachersInGroup(req, res, next) {
+  try {
+    const groupId = parseGroupId(req);
+    await assertOwnsGroup(groupId, req);
+
+    const teachers = await reviewCycleService.getTeachersInGroup(groupId);
+    return res.status(200).json(successResponse({ teachers }));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = {
+  proposeReviewCycle,
+  getProposals,
+  toggleProposal,
+  startReviewCycle,
+  getCycleProgress,
+  sendReminders,
+  getTeachersInGroup,
+};

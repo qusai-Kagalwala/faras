@@ -23,4 +23,13 @@ export const reviewCycleApi = {
 
   start: (token, groupId, week) =>
     apiClient.post(`/review-cycles/${groupId}/start`, { week }, authHeader(token)),
+
+  getProgress: (token, groupId, week) =>
+    apiClient.get(`/review-cycles/${groupId}/progress/${week}`, authHeader(token)),
+
+  sendReminders: (token, groupId, week) =>
+    apiClient.post(`/review-cycles/${groupId}/remind`, { week }, authHeader(token)),
+
+  getTeachers: (token, groupId) =>
+    apiClient.get(`/review-cycles/${groupId}/teachers`, authHeader(token)),
 };

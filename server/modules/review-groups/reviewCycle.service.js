@@ -22,6 +22,7 @@ const db = require('../../config/db');
 const { Errors } = require('../../middleware/errorHandler');
 const { partitionStudentsForProposal } = require('./partitionStudents');
 const { logAction } = require('../audit/auditLog.service');
+const { createNotification } = require('../notifications/notifications.service');
 
 async function loadGroupScope(reviewGroupId) {
   const groupResult = await db.query(
@@ -176,9 +177,112 @@ async function startReviewCycle(reviewGroupId, weekNumber, actorIts) {
   return { inserted, skipped, totalIncluded: includedResult.rows.length };
 }
 
+async function getCycleProgress(reviewGroupId, weekNumber) {
+  const { group } = await loadGroupScope(reviewGroupId);
+
+  // Every 'started' proposal maps to a SPECIFIC real schedule row (same
+  // week+class+subject+student) — join to it directly so responses are
+  // traced precisely, even though a student may have a second subject
+  // that same week from their normal rotation.
+  const startedResult = await db.query(
+    `SELECT p.student_its, s.name AS student_name, sch.id AS schedule_id
+     FROM review_cycle_proposals p
+     JOIN students s ON s.its_number = p.student_its
+     LEFT JOIN schedule sch ON sch.week_number = p.week_number
+       AND sch.class_id = p.class_id
+       AND sch.subject_id = p.subject_id
+       AND sch.student_its = p.student_its
+     WHERE p.review_group_id = $1 AND p.week_number = $2 AND p.status = 'started'`,
+    [reviewGroupId, weekNumber]
+  );
+
+  const scheduleIds = startedResult.rows.map((r) => r.schedule_id).filter(Boolean);
+  let respondedScheduleIds = new Set();
+  if (scheduleIds.length > 0) {
+    const respondedResult = await db.query(
+      'SELECT DISTINCT schedule_id FROM survey_responses WHERE schedule_id = ANY($1::int[])',
+      [scheduleIds]
+    );
+    respondedScheduleIds = new Set(respondedResult.rows.map((r) => r.schedule_id));
+  }
+
+  const respondedStudents = [];
+  const pendingStudents = [];
+  for (const row of startedResult.rows) {
+    const entry = { studentIts: row.student_its, studentName: row.student_name };
+    if (row.schedule_id && respondedScheduleIds.has(row.schedule_id)) {
+      respondedStudents.push(entry);
+    } else {
+      pendingStudents.push(entry);
+    }
+  }
+
+  return {
+    subjectId: group.subject_id,
+    shared: startedResult.rows.length,
+    respondedCount: respondedStudents.length,
+    pendingCount: pendingStudents.length,
+    pendingStudents,
+  };
+}
+
+/**
+ * N-04: creates a targeted, real notification for every student who was
+ * shared this cycle but hasn't responded yet.
+ */
+async function sendReminders(reviewGroupId, weekNumber, actorIts) {
+  const progress = await getCycleProgress(reviewGroupId, weekNumber);
+
+  const subjectResult = await db.query('SELECT name FROM subjects WHERE id = $1', [
+    progress.subjectId,
+  ]);
+  const subjectName = subjectResult.rows[0] ? subjectResult.rows[0].name : 'your assigned';
+
+  for (const student of progress.pendingStudents) {
+    createNotification(
+      student.studentIts,
+      'survey_reminder',
+      `Reminder: please complete your ${subjectName} survey for Week ${weekNumber}.`
+    );
+  }
+
+  logAction(actorIts, 'review_cycle.reminders_sent', {
+    reviewGroupId,
+    weekNumber,
+    count: progress.pendingStudents.length,
+  });
+
+  return { remindersSent: progress.pendingStudents.length };
+}
+
+/**
+ * N-05: every teacher in this Group's scope, so the Department Head can
+ * trigger AI report generation for each one directly from this page.
+ */
+async function getTeachersInGroup(reviewGroupId) {
+  const { classSubjectRows } = await loadGroupScope(reviewGroupId);
+  if (classSubjectRows.length === 0) return [];
+
+  const teacherIts = [...new Set(classSubjectRows.map((r) => r.teacher_its).filter(Boolean))];
+  if (teacherIts.length === 0) return [];
+
+  const result = await db.query(
+    `SELECT DISTINCT t.its_number, t.name, c.display_name AS class_name
+     FROM class_subjects cs
+     JOIN teachers t ON t.its_number = cs.teacher_its
+     JOIN classes c ON c.id = cs.class_id
+     WHERE cs.class_id = ANY($1::int[]) AND cs.teacher_its = ANY($2::char(8)[])`,
+    [classSubjectRows.map((r) => r.class_id), teacherIts]
+  );
+  return result.rows;
+}
+
 module.exports = {
   proposeReviewCycle,
   getProposals,
   toggleProposalIncluded,
   startReviewCycle,
+  getCycleProgress,
+  sendReminders,
+  getTeachersInGroup,
 };
