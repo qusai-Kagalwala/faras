@@ -54,11 +54,19 @@ async function loadClassData(classId) {
     classKey,
   }));
 
+  // G-04: subjects owned by an active Review Group are excluded from the
+  // normal per-class rotation entirely — their weekly scheduling is
+  // instead driven by that Group's own propose/start review-cycle flow
+  // (see reviewCycle.service.js). Without this exclusion, the two
+  // mechanisms could both insert into `schedule` for the same subject.
   const subjectsResult = await db.query(
     `SELECT sub.id AS subject_id, sub.name, cs.teacher_its
      FROM class_subjects cs
      JOIN subjects sub ON sub.id = cs.subject_id
-     WHERE cs.class_id = $1`,
+     WHERE cs.class_id = $1
+       AND NOT EXISTS (
+         SELECT 1 FROM review_groups rg WHERE rg.subject_id = sub.id
+       )`,
     [classId]
   );
   const subjects = subjectsResult.rows.map((s) => ({
