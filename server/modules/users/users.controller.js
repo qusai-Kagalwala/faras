@@ -30,7 +30,7 @@ async function assignRole(req, res, next) {
       throw Errors.validationFailed('A "role" string is required in the body.');
     }
 
-    const roles = await usersService.assignRole(itsNumber, role);
+    const roles = await usersService.assignRole(itsNumber, role, req.user.itsNumber);
     return res.status(200).json(successResponse({ itsNumber, roles }));
   } catch (err) {
     return next(err);
@@ -42,7 +42,7 @@ async function removeRole(req, res, next) {
     const { itsNumber, role } = req.params;
     validateIts(itsNumber);
 
-    const roles = await usersService.removeRole(itsNumber, role);
+    const roles = await usersService.removeRole(itsNumber, role, req.user.itsNumber);
     return res.status(200).json(successResponse({ itsNumber, roles }));
   } catch (err) {
     return next(err);
@@ -60,7 +60,10 @@ async function createAccount(req, res, next) {
       throw Errors.validationFailed('An "initialRole" string is required in the body.');
     }
 
-    const account = await usersService.createAccount({ itsNumber, name, email, initialRole });
+    const account = await usersService.createAccount(
+      { itsNumber, name, email, initialRole },
+      req.user.itsNumber
+    );
     return res.status(201).json(successResponse(account));
   } catch (err) {
     return next(err);
@@ -71,7 +74,7 @@ async function deactivate(req, res, next) {
   try {
     const { itsNumber } = req.params;
     validateIts(itsNumber);
-    const result = await usersService.setActive(itsNumber, false);
+    const result = await usersService.setActive(itsNumber, false, req.user.itsNumber);
     return res.status(200).json(successResponse(result));
   } catch (err) {
     return next(err);
@@ -82,7 +85,7 @@ async function reactivate(req, res, next) {
   try {
     const { itsNumber } = req.params;
     validateIts(itsNumber);
-    const result = await usersService.setActive(itsNumber, true);
+    const result = await usersService.setActive(itsNumber, true, req.user.itsNumber);
     return res.status(200).json(successResponse(result));
   } catch (err) {
     return next(err);

@@ -8,6 +8,7 @@ const db = require('../../config/db');
 const { Errors } = require('../../middleware/errorHandler');
 const { validateReviewGroupInput } = require('./validateReviewGroup');
 const { logAction } = require('../audit/auditLog.service');
+const { createNotification } = require('../notifications/notifications.service');
 
 async function assertHoldsDepartmentRole(itsNumber) {
   const result = await db.query(
@@ -46,6 +47,12 @@ async function createReviewGroup(input, actorIts) {
     subjectId,
     departmentHeadIts,
   });
+
+  createNotification(
+    departmentHeadIts,
+    'group_head_assigned',
+    `You have been made Department Head for "${name.trim()}" (${subjectCheck.rows[0].name}).`
+  );
 
   return result.rows[0];
 }

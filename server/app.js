@@ -26,6 +26,7 @@ const auditRoutes = require('./modules/audit/audit.routes');
 const studentsRoutes = require('./modules/students/students.routes');
 const reviewGroupsRoutes = require('./modules/review-groups/reviewGroups.routes');
 const reviewCycleRoutes = require('./modules/review-groups/reviewCycle.routes');
+const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -63,6 +64,7 @@ app.use('/api/audit-logs', auditRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/review-groups', reviewGroupsRoutes);
 app.use('/api/review-cycles', reviewCycleRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler); // must be last
