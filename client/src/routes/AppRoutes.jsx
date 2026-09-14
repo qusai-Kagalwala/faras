@@ -4,6 +4,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { ROLES } from '../utils/roles';
 
 import LoginPage from '../pages/auth/LoginPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import SuperAdminDashboard from '../pages/super-admin/Dashboard';
 import ClassesSubjects from '../pages/super-admin/ClassesSubjects';
 import Scheduling from '../pages/super-admin/Scheduling';
@@ -31,6 +32,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route

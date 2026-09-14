@@ -1,21 +1,34 @@
 // client/src/pages/super-admin/Scheduling.jsx
-// Extracted from the old monolithic SuperAdminDashboard.jsx (R-02).
-// Content is unchanged from the original SchedulingEngineCard.
+// FIXED REAL USABILITY GAP: "Class ID" was a raw numeric input with no
+// way to know which real class it referred to. Replaced with a real
+// dropdown showing actual class names, reusing the same classesApi
+// already used on the Classes & Subjects page. Added tooltips (title
+// attributes) on the week fields since their meaning wasn't obvious.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import { NAV_ITEMS } from '../../config/navItems';
 import { useAuth } from '../../context/AuthContext';
 import { schedulingApi } from '../../api/scheduling.api';
+import { classesApi } from '../../api/classes.api';
 
 function SchedulingEngineCard() {
   const { token } = useAuth();
+  const [classes, setClasses] = useState(null);
+  const [classesError, setClassesError] = useState(null);
   const [classId, setClassId] = useState('');
   const [startWeek, setStartWeek] = useState('');
   const [numWeeks, setNumWeeks] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    classesApi
+      .getClasses(token)
+      .then((res) => setClasses(res.data.classes))
+      .catch((err) => setClassesError(err.message || 'Could not load classes.'));
+  }, [token]);
 
   async function handleGenerate(e) {
     e.preventDefault();
@@ -48,29 +61,46 @@ function SchedulingEngineCard() {
         overwritten — only genuinely empty weeks are filled in.
       </p>
 
-      <form onSubmit={handleGenerate} className="mb-4 grid grid-cols-3 gap-2">
+      {classesError && (
+        <div className="mb-3 rounded-md border border-error/20 bg-error-bg px-3 py-2 text-sm text-error">
+          {classesError}
+        </div>
+      )}
+
+      <form onSubmit={handleGenerate} className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-xs text-text-tertiary" htmlFor="classId">
-            Class ID
+            Class
           </label>
-          <input
+          <select
             id="classId"
-            type="number"
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
             className="w-full rounded-md border border-border px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
             required
-          />
+          >
+            <option value="">Select a class...</option>
+            {classes &&
+              classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.display_name}
+                </option>
+              ))}
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-xs text-text-tertiary" htmlFor="startWeek">
-            Start Week
+            Start Week (1&ndash;22)
           </label>
           <input
             id="startWeek"
             type="number"
+            min={1}
+            max={22}
             value={startWeek}
             onChange={(e) => setStartWeek(e.target.value)}
+            placeholder="e.g. 1"
+            title="The first week of the range you want to generate, from 1 to 22"
             className="w-full rounded-md border border-border px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
             required
           />
@@ -82,8 +112,11 @@ function SchedulingEngineCard() {
           <input
             id="numWeeks"
             type="number"
+            min={1}
             value={numWeeks}
             onChange={(e) => setNumWeeks(e.target.value)}
+            placeholder="e.g. 3"
+            title="How many consecutive weeks to generate, starting from Start Week"
             className="w-full rounded-md border border-border px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
             required
           />
@@ -91,7 +124,7 @@ function SchedulingEngineCard() {
         <button
           type="submit"
           disabled={submitting}
-          className="col-span-3 mt-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-primary transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-3"
         >
           {submitting ? 'Generating...' : 'Generate'}
         </button>
