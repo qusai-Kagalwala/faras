@@ -73,6 +73,14 @@ export function AuthProvider({ children }) {
     setAskEveryTimeState(value);
   }
 
+  // After a successful password change, the backend has already updated
+  // must_change_password in the DB — this just reflects that locally so
+  // ProtectedRoute stops redirecting to /change-password, without needing
+  // a fresh login or token.
+  function clearMustChangePassword() {
+    setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
+  }
+
   function logout() {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     setToken(null);
@@ -92,6 +100,7 @@ export function AuthProvider({ children }) {
         login,
         switchRole,
         logout,
+        clearMustChangePassword,
       }}
     >
       {children}

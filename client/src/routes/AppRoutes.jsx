@@ -1,10 +1,11 @@
 // client/src/routes/AppRoutes.jsx
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
-import { ROLES } from '../utils/roles';
+import { ROLES, ALL_ROLES } from '../utils/roles';
 
 import LoginPage from '../pages/auth/LoginPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import ChangePasswordPage from '../pages/auth/ChangePasswordPage';
 import SuperAdminDashboard from '../pages/super-admin/Dashboard';
 import ClassesSubjects from '../pages/super-admin/ClassesSubjects';
 import Scheduling from '../pages/super-admin/Scheduling';
@@ -33,6 +34,14 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <ChangePasswordPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route

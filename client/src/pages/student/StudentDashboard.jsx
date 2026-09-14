@@ -3,6 +3,7 @@
 // child component — subject only (FR-SP-02).
 
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { surveyApi } from '../../api/survey.api';
 import LikertQuestion from '../../components/survey/LikertQuestion';
@@ -55,6 +56,9 @@ export default function StudentDashboard() {
         <div className="flex items-center justify-between">
           <p className="font-display text-lg font-bold text-white">FARAS</p>
           <div className="flex items-center gap-2">
+            <Link to="/change-password" className="text-sm text-white/80 underline">
+              Change Password
+            </Link>
             <button onClick={logout} className="text-sm text-white/80 underline">
               Log Out
             </button>

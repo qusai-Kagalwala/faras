@@ -7,7 +7,7 @@
 // dropdown off of it, instead of a separate always-visible button.
 
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { DASHBOARD_PATH_BY_ROLE, ROLE_LABELS } from '../../utils/roles';
 import { getInitials } from '../../utils/initials';
@@ -42,6 +42,13 @@ function AvatarMenu({ user, logout }) {
           <p className="truncate border-b border-border px-3 py-2 text-sm font-medium text-dark-brown">
             {user?.name}
           </p>
+          <Link
+            to="/change-password"
+            onClick={() => setOpen(false)}
+            className="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-cream-dark"
+          >
+            Change Password
+          </Link>
           <button
             type="button"
             onClick={logout}

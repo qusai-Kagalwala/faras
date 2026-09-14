@@ -37,5 +37,12 @@ export default function ProtectedRoute({ allowedRoles, children }) {
     return <Navigate to={correctPath} replace />;
   }
 
+  // FR-AUTH: starter password (own ITS Number) must be changed on first
+  // login. Previously nothing in the UI ever checked this flag at all —
+  // enforce it here so it can't be silently skipped.
+  if (user.mustChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+
   return children;
 }
