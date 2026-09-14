@@ -49,14 +49,19 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-dark via-primary to-dark-brown px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg border border-border bg-white p-8 shadow-sm"
+        className="w-full max-w-sm rounded-xl bg-white p-8 shadow-2xl"
         noValidate
       >
-        <h1 className="mb-1 font-display text-2xl font-bold text-dark-brown">Change Password</h1>
-        <p className="mb-6 text-sm text-text-tertiary">
+        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-widest text-gold">
+          Aljamea-tus-Saifiyah
+        </p>
+        <h1 className="mb-1 text-center font-display text-2xl font-bold text-dark-brown">
+          Change Password
+        </h1>
+        <p className="mb-6 text-center text-sm text-text-tertiary">
           {forced
             ? "You're using your starter password (your ITS Number). Set a new password to continue."
             : 'Enter your current password and choose a new one.'}
@@ -68,7 +73,7 @@ export default function ChangePasswordPage() {
           </div>
         )}
 
-        <label className="mb-1 block text-sm font-medium text-text-secondary" htmlFor="currentPassword">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-secondary" htmlFor="currentPassword">
           Current Password
         </label>
         <input
@@ -82,7 +87,7 @@ export default function ChangePasswordPage() {
           required
         />
 
-        <label className="mb-1 block text-sm font-medium text-text-secondary" htmlFor="newPassword">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-secondary" htmlFor="newPassword">
           New Password
         </label>
         <input
@@ -96,7 +101,7 @@ export default function ChangePasswordPage() {
           required
         />
 
-        <label className="mb-1 block text-sm font-medium text-text-secondary" htmlFor="confirmPassword">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-secondary" htmlFor="confirmPassword">
           Confirm New Password
         </label>
         <input
